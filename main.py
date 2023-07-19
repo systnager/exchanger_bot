@@ -6,6 +6,7 @@ from telebot import types
 from datetime import datetime
 
 AUTHENTICATION_TOKEN = '6037063888:AAHVm-IjLif82Wt-CNykhrRU3VsJqtecjYI'
+CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 bot = telebot.TeleBot(AUTHENTICATION_TOKEN)
 
 
@@ -18,8 +19,7 @@ def get_config():
 
 def home(message):
     markup = types.ReplyKeyboardMarkup(row_width=2)
-    exchange_payeer_usd_to_uah_button = types.KeyboardButton("""Payeer USD
-Карта UAH""")
+    exchange_payeer_usd_to_uah_button = types.KeyboardButton('Payeer USD\n' + 'Карта UAH')
     course_button = types.KeyboardButton('Курс обміну')
     support_button = types.KeyboardButton('Підтримка')
 
@@ -29,12 +29,11 @@ def home(message):
         support_button,
     )
 
-    bot.send_message(message.chat.id, 'Оберіть дію', reply_markup=markup)
+    bot.send_message(message.chat.id, 'Ви на головній!', reply_markup=markup)
 
 
 def exchange_payeer_usd_to_uah(message):
     markup = types.ReplyKeyboardMarkup(row_width=1)
-    current_date = datetime.now().strftime('%Y.%m.%d')
     home_button = types.KeyboardButton('Головна')
 
     config = get_config()
@@ -43,7 +42,10 @@ def exchange_payeer_usd_to_uah(message):
     )
     bot.send_message(message.chat.id,
                      f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: ' +
-                     f'"Ваша_карта Ваш_нік_у_телеграм {current_date}". У разі недотримання шаблону кошти можуть безворотньо зникнути. Обмін відбудеться протягом 48 годин. УВАГА! Надішліть скрін переказу в бот. Лише після цього заявку буде розглянуто',
+                     f'Ваша_карта Ваш_нік_у_телеграм')
+    bot.send_message(message.chat.id,
+                     f'❗️❗️❗️УВАГА❗️❗️❗️\nУ разі недотримання шаблону адміністрація має право не проводити обмін. ' +
+                     f'Надішліть скрін переказу в бот. Лише після цього заявку буде прийнято на розгляд',
                      reply_markup=markup)
 
 
@@ -58,7 +60,7 @@ def course(message):
         home_button,
     )
     bot.send_message(message.chat.id, f'Курс на {current_date}\n' +
-                     f'1 Payeer USD -> {config["payeer_usd_to_uah"]} UAH', reply_markup=markup)
+                     f'1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH', reply_markup=markup)
 
 
 def support(message):
@@ -68,11 +70,14 @@ def support(message):
     markup.add(
         home_button,
     )
-    bot.send_message(message.chat.id, f'Для підтримки напишіть @arobotok202118 або @systnager', reply_markup=markup)
+    bot.send_message(message.chat.id,
+                     f'Для отриманя підтримки пишіть @arobotok202118 або @systnager\n' +
+                     f'Наш чат: {CHAT_URL}', reply_markup=markup)
 
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    bot.send_message(message.chat.id, f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
     home(message)
 
 
@@ -80,8 +85,7 @@ def start(message):
 def handle_exchange_button_click(message):
     if message.text == 'Головна':
         home(message)
-    elif message.text == """Payeer USD
-Карта UAH""":
+    elif message.text == 'Payeer USD\n' + 'Карта UAH':
         exchange_payeer_usd_to_uah(message)
     elif message.text == 'Курс обміну':
         course(message)
@@ -102,7 +106,8 @@ def handle_photo(message):
     )
 
     bot.send_photo(-1001749858927, photo_id)
-    bot.send_message(message.chat.id, f'Заявку прийнято!', reply_markup=markup)
+    bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️\n' +
+                     f'Наш чат: {CHAT_URL}', reply_markup=markup)
 
 
 def main():
