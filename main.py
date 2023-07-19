@@ -18,7 +18,8 @@ def get_config():
 
 def home(message):
     markup = types.ReplyKeyboardMarkup(row_width=2)
-    exchange_payeer_usd_to_uah_button = types.KeyboardButton('Обмін Payeer USD -> UAH')
+    exchange_payeer_usd_to_uah_button = types.KeyboardButton("""Payeer USD
+Карта UAH""")
     course_button = types.KeyboardButton('Курс обміну')
     support_button = types.KeyboardButton('Підтримка')
 
@@ -33,20 +34,22 @@ def home(message):
 
 def exchange_payeer_usd_to_uah(message):
     markup = types.ReplyKeyboardMarkup(row_width=1)
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y.%m.%d')
     home_button = types.KeyboardButton('Головна')
 
     config = get_config()
     markup.add(
         home_button,
     )
-    bot.send_message(message.chat.id, f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем ' +
-                     f'"Ваша_карта {current_date}". Обмін відбудеться протягом 48 годин', reply_markup=markup)
+    bot.send_message(message.chat.id,
+                     f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: ' +
+                     f'"Ваша_карта Ваш_нік_у_телеграм {current_date}". У разі недотримання шаблону кошти можуть безворотньо зникнути. Обмін відбудеться протягом 48 годин. УВАГА! Надішліть скрін переказу в бот. Лише після цього заявку буде розглянуто',
+                     reply_markup=markup)
 
 
 def course(message):
     markup = types.ReplyKeyboardMarkup(row_width=1)
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y.%m.%d')
     home_button = types.KeyboardButton('Головна')
 
     config = get_config()
@@ -77,7 +80,8 @@ def start(message):
 def handle_exchange_button_click(message):
     if message.text == 'Головна':
         home(message)
-    elif message.text == 'Обмін Payeer USD -> UAH':
+    elif message.text == """Payeer USD
+Карта UAH""":
         exchange_payeer_usd_to_uah(message)
     elif message.text == 'Курс обміну':
         course(message)
@@ -85,9 +89,31 @@ def handle_exchange_button_click(message):
         support(message)
 
 
+@bot.message_handler(content_types=['photo'])
+def handle_photo(message):
+    photo = message.photo[-1]
+    photo_id = photo.file_id
+
+    markup = types.ReplyKeyboardMarkup(row_width=1)
+    home_button = types.KeyboardButton('Головна')
+
+    markup.add(
+        home_button,
+    )
+
+    bot.send_photo(-1001749858927, photo_id)
+    bot.send_message(message.chat.id, f'Заявку прийнято!', reply_markup=markup)
+
+
 def main():
     bot.polling()
 
 
 if __name__ == '__main__':
-    main()
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            quit()
+        except ConnectionError:
+            continue
