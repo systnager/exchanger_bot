@@ -1,20 +1,42 @@
+from requests.exceptions import ReadTimeout, ConnectionError
 import json
+import time
 
 import telebot
 from telebot import types
 
 from datetime import datetime
 
+ADMIN_ID_LIST = ['616356243', '1760269999']
 AUTHENTICATION_TOKEN = '6037063888:AAHVm-IjLif82Wt-CNykhrRU3VsJqtecjYI'
 CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 bot = telebot.TeleBot(AUTHENTICATION_TOKEN)
 
 
+def print_log(log_text):
+    print(f'{datetime.now()} {log_text}')
+
+
+def save_config(config):
+    with open("config.json", "w") as config_file:
+        json.dump(config, config_file, indent=4)
+
+
 def get_config():
-    config_file = open("config.json")
-    config = json.load(config_file)
-    config_file.close()
-    return config
+    with open("config.json", "r") as config_file:
+        return json.load(config_file)
+
+
+def set_payeer_usd_to_uah_course(_course):
+    config = get_config()
+    config["payeer_usd_to_uah"] = _course
+    save_config(config)
+
+
+def set_payeer_account(payeer_account):
+    config = get_config()
+    config["payeer_account"] = payeer_account
+    save_config(config)
 
 
 def home(message):
@@ -40,12 +62,14 @@ def exchange_payeer_usd_to_uah(message):
     markup.add(
         home_button,
     )
+
+    bot.send_message(message.chat.id,
+                     f'❗️❗️❗️УВАГА❗️❗️❗️\nУ разі невиконання інструкцій адміністрація має право не проводити Вам обмін')
     bot.send_message(message.chat.id,
                      f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: ' +
-                     f'Ваша_карта Ваш_нік_у_телеграм')
-    bot.send_message(message.chat.id,
-                     f'❗️❗️❗️УВАГА❗️❗️❗️\nУ разі недотримання шаблону адміністрація має право не проводити обмін. ' +
-                     f'Надішліть скрін переказу в бот. Лише після цього заявку буде прийнято на розгляд',
+                     f'Ваша_карта Ваш_нік')
+    bot.send_message(message.chat.id, f'Надішліть скрін переказу в бот з коментарем під ним. ' +
+                     f'Лише після цього заявку буде прийнято на розгляд',
                      reply_markup=markup)
 
 
@@ -71,18 +95,26 @@ def support(message):
         home_button,
     )
     bot.send_message(message.chat.id,
-                     f'Для отриманя підтримки пишіть @arobotok202118 або @systnager\n' +
-                     f'Наш чат: {CHAT_URL}', reply_markup=markup)
+                     f'Контакти для отриманя підтримки: @arobotok202118 та @systnager', reply_markup=markup)
 
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    print_log(f'{message.chat.id} run bot')
     bot.send_message(message.chat.id, f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
     home(message)
 
 
 @bot.message_handler(func=lambda message: True)
 def handle_exchange_button_click(message):
+    if str(message.chat.id) in ADMIN_ID_LIST:
+        if 'Пеєр для обміну:' in message.text and len(message.text) > 16:
+            set_payeer_account(message.text.split(':')[1].replace(' ', ''))
+            bot.send_message(message.chat.id, 'Виконано')
+        elif 'Курс з пеєра долар на карту гривню:' in message.text and len(message.text) > 34:
+            set_payeer_usd_to_uah_course(message.text.split(':')[1].replace(' ', ''))
+            bot.send_message(message.chat.id, 'Виконано')
+
     if message.text == 'Головна':
         home(message)
     elif message.text == 'Payeer USD\n' + 'Карта UAH':
@@ -104,10 +136,12 @@ def handle_photo(message):
     markup.add(
         home_button,
     )
-
-    bot.send_photo(-1001749858927, photo_id)
-    bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️\n' +
-                     f'Наш чат: {CHAT_URL}', reply_markup=markup)
+    if message.caption:
+        bot.send_photo(-1001749858927, photo_id, caption=f'id: {message.chat.id}\n{message.caption}')
+        bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️',
+                         reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, 'Виконуйте інструкцію❗️')
 
 
 def main():
@@ -118,7 +152,7 @@ if __name__ == '__main__':
     while True:
         try:
             main()
-        except KeyboardInterrupt:
-            quit()
-        except ConnectionError:
+        except (ReadTimeout, ConnectionError):
+            print_log("Error with Internet connection")
+            time.sleep(1)
             continue
