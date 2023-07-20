@@ -8,7 +8,9 @@ from telebot import types
 from datetime import datetime
 
 ADMIN_ID_LIST = ['616356243', '1760269999']
-AUTHENTICATION_TOKEN = '6037063888:AAHVm-IjLif82Wt-CNykhrRU3VsJqtecjYI'
+IS_DEBUG = True
+AUTHENTICATION_TOKEN = '6392565799:AAFzQy4uesuvZ-5gOhCcrvhYr_xdSalYqI8' if IS_DEBUG else '6037063888:AAHVm-IjLif82Wt' \
+                                                                                         '-CNykhrRU3VsJqtecjYI'
 CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 bot = telebot.TeleBot(AUTHENTICATION_TOKEN)
 
@@ -129,7 +131,7 @@ def handle_exchange_button_click(message):
 def handle_photo(message):
     photo = message.photo[-1]
     photo_id = photo.file_id
-
+    chat_id = -993312734 if IS_DEBUG else -1001749858927
     markup = types.ReplyKeyboardMarkup(row_width=1)
     home_button = types.KeyboardButton('Головна')
 
@@ -137,7 +139,7 @@ def handle_photo(message):
         home_button,
     )
     if message.caption:
-        bot.send_photo(-1001749858927, photo_id, caption=f'id: {message.chat.id}\n{message.caption}')
+        bot.send_photo(chat_id, photo_id, caption=f'id: {message.chat.id}\n{message.caption}')
         bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️',
                          reply_markup=markup)
     else:
