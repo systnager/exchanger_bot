@@ -1,4 +1,18 @@
 {
-  "payeer_usd_to_uah": "36.20",
-  "payeer_account": "P1053176292"
+    "payeer_usd_to_uah": 36.33,
+    "payeer_account": "P1053176292",
+    "users": {
+        "1760269999": {
+            "state": "default",
+            "balance": 0,
+            "invited_by": "1760269999",
+            "invited_user_count": 0
+        },
+        "616356243": {
+            "state": "default",
+            "balance": 0,
+            "invited_by": "616356243",
+            "invited_user_count": 1
+        }
+    }
 }
