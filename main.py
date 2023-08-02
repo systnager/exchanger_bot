@@ -25,46 +25,39 @@ def main():
         telebot.send_message(message.chat.id, f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
         user_id = str(message.chat.id)
         config = get_config()
+        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else None
         if (not (user_id in config["users"])) or config["users"][user_id]["state"] == 'register':
-            telebot.send_message(message.chat.id, 'Введіть айді того, хто запросив Вас, або None')
             config["users"][user_id] = {
-                "state": "register",
+                "state": "default",
                 "balance": 0,
                 "invited_by": '',
                 "invited_user_count": 0,
             }
+
+            if ref_id in config["users"]:
+                config["users"][user_id]["invited_by"] = ref_id
+                config["users"][ref_id]["invited_user_count"] += 1
+                telebot.send_message(int(ref_id), f'У Вас новий реферал з ID: {user_id}')
+            else:
+                admin_id = random.choice(ADMIN_ID_LIST)
+                config["users"][user_id]["invited_by"] = admin_id
+                config["users"][admin_id]["invited_user_count"] += 1
+                telebot.send_message(int(admin_id), f'Вам приєднано вільного реферала з ID: {user_id} як адміну')
+
             save_config(config)
-        else:
-            bot_config.home(message)
+        bot_config.home(message)
 
     @telebot.message_handler(func=lambda message: True)
-    def handle_exchange_button_click(message):
+    def handle_button_click(message):
         config = get_config()
         user_id = str(message.chat.id)
-        user_text_answer = message.text
 
         if user_id in config["users"]:
             if config["users"][user_id]["state"] == 'register':
-                if user_text_answer.isdigit() and user_text_answer in config["users"]:
-                    telebot.send_message(message.chat.id, 'Чудово, реєстрацію завершено успішно!',
-                                         reply_markup=bot_config.home_markup)
-                    telebot.send_message(int(user_text_answer), f'У вас новий реферал з ID {user_id}')
-                    config["users"][user_id]["state"] = 'default'
-                    config["users"][user_id]["invited_by"] = user_text_answer
-                    config["users"][user_text_answer]["invited_user_count"] += 1
-                    save_config(config)
-                if user_text_answer.lower() == 'none':
-                    random_admin_id = random.choice(ADMIN_ID_LIST)
-                    telebot.send_message(message.chat.id, 'Вам автоматично надано реферера',
-                                         reply_markup=bot_config.home_markup)
-                    telebot.send_message(int(random_admin_id), f'У вас новий реферал з ID {user_id}')
-                    config["users"][user_id]["state"] = 'default'
-                    config["users"][user_id]["invited_by"] = random_admin_id
-                    config["users"][random_admin_id]["invited_user_count"] += 1
-                    save_config(config)
-                else:
-                    telebot.send_message(message.chat.id, 'Потрібно пройти реєстрацію. ' +
-                                         'Введіть айді того, хто запросив Вас, або None')
+                admin_id = random.choice(ADMIN_ID_LIST)
+                config["users"][user_id]["invited_by"] = admin_id
+                config["users"][admin_id]["invited_user_count"] += 1
+                telebot.send_message(int(admin_id), f'Вам приєднано вільного реферала з ID: {user_id} як адміну')
 
             elif message.text == 'Головна':
                 bot_config.home(message)
@@ -202,7 +195,7 @@ class BotConfig:
         telebot.send_message(message.chat.id,
                              f'Ваш баланс: {round(float(config["users"][str(message.chat.id)]["balance"]), 2)}грн\n' +
                              f'Усього запрошено: {config["users"][str(message.chat.id)]["invited_user_count"]}\n' +
-                             f'Ваш ID для запрошення: {message.chat.id}\n' +
+                             f'Ваш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\n' +
                              f'Ви будете отримувати 0.5% від суми обміну Ваших рефералів',
                              reply_markup=self.refferals_markup)
 
@@ -349,10 +342,9 @@ class BotConfig:
                              f'Вам обмін')
         telebot.send_message(message.chat.id,
                              f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: ' +
-                             f'Ваша_карта {message.from_user.id} ' +
-                             f'@{message.from_user.username} {message.from_user.first_name}')
-        telebot.send_message(message.chat.id, f'Надішліть скрін переказу в бот з коментарем під ним. ' +
-                             f'Лише після цього заявку буде прийнято на розгляд',
+                             f'Ваша_карта та ID: {message.from_user.id}')
+        telebot.send_message(message.chat.id, f'Надішліть скрін переказу в бот та номером карти одним повідомленням' +
+                             f'Лише після цього заявку буде прийнято на розгляд. Максимальний термін обміну: 48 годин',
                              reply_markup=self.back_markup)
 
     def course(self, message):
