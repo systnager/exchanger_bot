@@ -1,20 +1,9 @@
 {
+    "ref_percent": 0.5,
     "payeer_usd_to_uah": 36.33,
-    "payeer_account": "P1053176292",
-    "DEBUG_AUTHENTICATION_TOKEN": "6392565799:AAFzQy4uesuvZ-5gOhCcrvhYr_xdSalYqI8",
+    "payeer_account": "\u0456\u0432\u0430\u0456\u0432\u0430\u0456\u0432\u0430",
+    "EXCHANGE_REQUEST_CHAT_ID": -1001749858927,
+    "DEBUG_EXCHANGE_REQUEST_CHAT_ID": -993312734,
     "AUTHENTICATION_TOKEN": "6037063888:AAHVm-IjLif82Wt-CNykhrRU3VsJqtecjYI",
-    "users": {
-        "1760269999": {
-            "state": "default",
-            "balance": 0,
-            "invited_by": "1760269999",
-            "invited_user_count": 0
-        },
-        "616356243": {
-            "state": "default",
-            "balance": 0,
-            "invited_by": "616356243",
-            "invited_user_count": 1
-        }
-    }
+    "DEBUG_AUTHENTICATION_TOKEN": "6392565799:AAFzQy4uesuvZ-5gOhCcrvhYr_xdSalYqI8"
 }
