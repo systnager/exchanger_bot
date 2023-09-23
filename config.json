@@ -1,6 +1,8 @@
 {
     "payeer_usd_to_uah": 36.33,
     "payeer_account": "P1053176292",
+    "DEBUG_AUTHENTICATION_TOKEN": "6392565799:AAFzQy4uesuvZ-5gOhCcrvhYr_xdSalYqI8",
+    "AUTHENTICATION_TOKEN": "6037063888:AAHVm-IjLif82Wt-CNykhrRU3VsJqtecjYI",
     "users": {
         "1760269999": {
             "state": "default",
