@@ -15,18 +15,21 @@ cursor = conn.cursor()
 
 
 def write_new_item(table: str, columns: list, values: list):
+    print(f'INSERT INTO {table} ({",".join(columns)}) values ({",".join(values)});')
     cursor.execute(f'INSERT INTO {table} ({",".join(columns)}) values ({",".join(values)});')
     conn.commit()
 
 
 def get_item(table, columns, params=None, param_values=None):
-    if len(params) != len(param_values) and columns != '*':
-        raise ValueError("Number of columns and values should be the same")
+    if not (params is None or param_values is None):
+        if len(params) != len(param_values) and columns != '*':
+            raise ValueError("Number of columns and values should be the same")
 
     set_clause = ", ".join(columns)
 
     where_clause = " AND ".join(f"{col} = '{val}'" if isinstance(val, str) else f"{col} = {val}"
-                                for col, val in zip(columns, params))
+                                for col, val in zip(params, param_values)) if not (params is None or
+                                                                                   param_values is None) else ''
 
     if columns == '*':
         set_clause = "*"
@@ -34,7 +37,8 @@ def get_item(table, columns, params=None, param_values=None):
     if where_clause:
         where_clause = " WHERE " + where_clause
 
-    cursor.execute(f"SELECT {set_clause} FROM {table} {where_clause}")
+    print(f"SELECT {set_clause} FROM {table} {where_clause};")
+    cursor.execute(f"SELECT {set_clause} FROM {table} {where_clause};")
     return cursor.fetchall()
 
 
@@ -47,10 +51,10 @@ def update_item(table, columns, values, params=None, param_values=None):
 
     where_clause = " AND ".join(f"{param} = {param_val}" if isinstance(param_val, str) else f"{param} = '{param_val}'"
                                 for param, param_val in zip(params, param_values)
-    )
+                                )
 
     if where_clause:
         where_clause = "WHERE " + where_clause
-
-    cursor.execute(f"UPDATE {table} SET {set_clause} {where_clause}")
+    print(f"UPDATE {table} SET {set_clause} {where_clause};")
+    cursor.execute(f"UPDATE {table} SET {set_clause} {where_clause};")
     conn.commit()
