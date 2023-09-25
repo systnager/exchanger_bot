@@ -1,5 +1,5 @@
 from datetime import datetime
-import json
+from database import update_item
 
 
 def is_numeric(value):
@@ -23,23 +23,12 @@ def print_log(log_text):
     print(f'{datetime.now()} {log_text}')
 
 
-def save_config(config):
-    with open("config.json", "w") as config_file:
-        json.dump(config, config_file, indent=4)
-
-
-def get_config():
-    with open("config.json", "r") as config_file:
-        return json.load(config_file)
-
-
 def set_payeer_usd_to_uah_course(course):
-    config = get_config()
-    config["payeer_usd_to_uah"] = course
-    save_config(config)
+    if is_numeric(course):
+        update_item('settings', ['payeer_usd_to_uah'], [course], ['id'], [1])
+    else:
+        raise ValueError('Course must to be numeric')
 
 
 def set_payeer_account(payeer_account):
-    config = get_config()
-    config["payeer_account"] = payeer_account
-    save_config(config)
+    update_item('settings', ['payeer_account'], [payeer_account], ['id'], [1])
