@@ -9,7 +9,7 @@ from requests.exceptions import ReadTimeout, ConnectionError
 from bot import BotConfig
 from business import *
 from database import get_item, update_item, write_new_item
-from mysql.connector.errors import OperationalError, InternalError
+from mysql.connector.errors import OperationalError
 
 load_dotenv()
 ADMIN_ID_LIST = [
@@ -31,8 +31,6 @@ def main():
         bot.send_message(message.chat.id, f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
         user_id = message.chat.id
         user = get_item('user', '*', ['id'], [user_id])
-        print(user_id)
-
         ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else random.choice(ADMIN_ID_LIST)
         if not user:
             write_new_item('user', ['id', 'state', 'balance'], [user_id, 'default', 0])
@@ -55,63 +53,41 @@ def main():
         user_id = message.chat.id
         user = get_item('user', '*', ['id'], [user_id])
 
-        if user:
-            if message.text == 'Головна':
-                bot_config.home(message)
-            elif message.text == 'Payeer USD\n' + 'Карта UAH':
-                bot_config.exchange_payeer_usd_to_uah(message)
-            elif message.text == 'Реферали':
-                bot_config.refferals(message)
-            elif message.text == 'Курс обміну':
-                bot_config.course(message)
-            elif message.text == 'Підтримка':
-                bot_config.support(message)
-            elif message.text == 'Вивести':
-                bot_config.withdraw(message)
-            elif message.text == 'Адмінка':
-                if user_id in ADMIN_ID_LIST:
-                    bot.send_message(message.chat.id, 'Ви в адмінці', reply_markup=bot_config.admin_markup)
-                else:
-                    bot.send_message(message.chat.id, 'Ви не адмін. Доступ заборонено!')
+        action = {
+            'Головна': lambda: bot_config.home(message),
+            'Payeer USD\n' + 'Карта UAH': lambda: bot_config.exchange_payeer_usd_to_uah(message),
+            'Реферали': lambda: bot_config.refferals(message),
+            'Курс обміну': lambda: bot_config.course(message),
+            'Підтримка': lambda: bot_config.support(message),
+            'Вивести': lambda: bot_config.withdraw(message),
+        }
 
+        admin_action = {
+            'Адмінка': lambda: bot.send_message(message.chat.id, 'Ви в адмінці', reply_markup=bot_config.admin_markup),
+            'Підтвердити виплату': lambda: bot_config.set_confirm_withdraw_state(message),
+            'Підтвердити обмін': lambda: bot_config.set_confirm_exchange_state(message),
+            'Змінити курс Payeer USD карта UAH': lambda: bot_config.set_change_payeer_usd_to_uah_course_state(message),
+            'Змінити Payeer': lambda: bot_config.set_change_payeer_account_state(message),
+            'Відправити всім користувачам сповіщення': lambda: bot_config.set_send_allert_for_all_users_state(message),
+
+            'withdraw': lambda: bot_config.get_request_for_withdrawal(message),
+            'confirm_withdraw': lambda: bot_config.confirm_withdraw(message),
+            'confirm_exchange': lambda: bot_config.confirm_exchange(message),
+            'change_payeer_usd_to_uah_course': lambda: bot_config.change_payeer_usd_to_uah_course(message),
+            'change_payeer_account': lambda: bot_config.change_payeer_account(message),
+            'send_allert_for_all_users': lambda: bot_config.send_allert_for_all_users(message),
+        }
+
+        if user:
+            if message.text in action:
+                action[message.text]()
             if user_id in ADMIN_ID_LIST:
                 user = get_item('user', '*', ['id'], [user_id])
-                if user:
-                    user = user[0]
-                    if user[1] == 'withdraw':
-                        bot_config.get_request_for_withdrawal(message)
-                    elif user[1] == 'confirm_withdraw':
-                        bot_config.confirm_withdraw(message)
-                    elif user[1] == 'confirm_exchange':
-                        bot_config.confirm_exchange(message)
-                    elif user[1] == 'change_payeer_usd_to_uah_course':
-                        bot_config.change_payeer_usd_to_uah_course(message)
-                    elif user[1] == 'change_payeer_account':
-                        bot_config.change_payeer_account(message)
-                    elif user[1] == 'send_allert_for_all_users':
-                        bot_config.send_allert_for_all_users(message)
-
-                    elif message.text == 'Підтвердити виплату':
-                        update_item('user', ['state'], ['confirm_withdraw'], ['id'], [user_id])
-                        bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була виплачена в грн, ' +
-                                         f'через пробіл', reply_markup=bot_config.back_markup)
-                    elif message.text == 'Підтвердити обмін':
-                        update_item('user', ['state'], ['confirm_exchange'], ['id'], [user_id])
-                        bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була обміняна в грн, ' +
-                                         f'через пробіл', reply_markup=bot_config.back_markup)
-                    elif message.text == 'Змінити курс Payeer USD карта UAH':
-                        update_item('user', ['state'], ['change_payeer_usd_to_uah_course'], ['id'], [user_id])
-                        bot.send_message(message.chat.id, 'Введіть курс Payeer - UAH до 4 знаків після коми',
-                                         reply_markup=bot_config.back_markup)
-                    elif message.text == 'Змінити Payeer':
-                        update_item('user', ['state'], ['change_payeer_account'], ['id'], [user_id])
-                        bot.send_message(message.chat.id, 'Введіть новий Payeer аккаунт',
-                                         reply_markup=bot_config.back_markup)
-                    elif message.text == 'Відправити всім користувачам сповіщення':
-                        update_item('user', ['state'], ['send_allert_for_all_users'], ['id'], [user_id])
-                        bot.send_message(message.chat.id, 'Введіть текст сповіщення',
-                                         reply_markup=bot_config.back_markup)
-
+                user = user[0]
+                if message.text in admin_action:
+                    admin_action[message.text]()
+                elif user[1] in admin_action:
+                    admin_action[user[1]]()
         else:
             bot.send_message(message.chat.id, 'Потрібно пройти реєстрацію. Натисніть /start')
 
@@ -120,19 +96,17 @@ def main():
         user_id = message.chat.id
         config = get_config()
         user = get_item('user', '*', ['id'], [user_id])
-        if user:
+        if user and message.caption:
             photo = message.photo[-1].file_id
+            bot.send_photo(CHAT_ID, photo, caption=f'курс: {config["payeer_usd_to_uah"]}\n' +
+                                                   f'id юзера: {message.chat.id}\n' +
+                                                   f'комент юзера: {message.caption}\n' +
+                                                   f'username: @{message.from_user.username}\n')
 
-            if message.caption:
-                bot.send_photo(CHAT_ID, photo, caption=f'курс: {config["payeer_usd_to_uah"]}\n' +
-                                                       f'id юзера: {message.chat.id}\n' +
-                                                       f'комент юзера: {message.caption}\n' +
-                                                       f'username: @{message.from_user.username}\n')
-
-                bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️',
-                                 reply_markup=bot_config.back_markup)
-            else:
-                bot.send_message(message.chat.id, 'Заявку НЕ прийнято. Виконуйте інструкцію❗️')
+            bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️',
+                             reply_markup=bot_config.back_markup)
+        else:
+            bot.send_message(message.chat.id, 'Заявку НЕ прийнято. Виконуйте інструкцію❗️')
 
     bot.polling()
 

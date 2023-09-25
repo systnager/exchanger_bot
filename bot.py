@@ -1,12 +1,11 @@
 import os
-from telebot import types
+
 from dotenv import load_dotenv
+from telebot import types
+from telebot.apihelper import ApiTelegramException
 
 from business import *
-from database import write_new_item, get_item, update_item
-from telebot.apihelper import ApiTelegramException
-from database import conn, cursor
-
+from database import get_item, update_item
 
 load_dotenv()
 IS_DEBUG = True if os.getenv('IS_DEBUG') == "True" else False
@@ -206,6 +205,36 @@ class BotConfig:
                 continue
 
         self.bot.send_message(message.chat.id, 'Повідомлення відправлено всім користувачам бота',
+                              reply_markup=self.back_markup)
+
+    def set_confirm_withdraw_state(self, message):
+        update_item('user', ['state'], ['confirm_withdraw'],
+                    ['id'], [message.chat.id])
+        self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була виплачена в грн, ' +
+                              f'через пробіл', reply_markup=self.back_markup)
+
+    def set_confirm_exchange_state(self, message):
+        update_item('user', ['state'], ['confirm_exchange'],
+                    ['id'], [message.chat.id])
+        self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була обміняна в грн, ' +
+                              f'через пробіл', reply_markup=self.back_markup)
+
+    def set_change_payeer_usd_to_uah_course_state(self, message):
+        update_item('user', ['state'], ['change_payeer_usd_to_uah_course'],
+                    ['id'], [message.chat.id])
+        self.bot.send_message(message.chat.id, 'Введіть курс Payeer - UAH до 4 знаків після коми',
+                              reply_markup=self.back_markup)
+
+    def set_change_payeer_account_state(self, message):
+        update_item('user', ['state'], ['change_payeer_account'],
+                    ['id'], [message.chat.id])
+        self.bot.send_message(message.chat.id, 'Введіть новий Payeer аккаунт',
+                              reply_markup=self.back_markup)
+
+    def set_send_allert_for_all_users_state(self, message):
+        update_item('user', ['state'], ['send_allert_for_all_users'],
+                    ['id'], [message.chat.id])
+        self.bot.send_message(message.chat.id, 'Введіть текст сповіщення',
                               reply_markup=self.back_markup)
 
     def home(self, message):
