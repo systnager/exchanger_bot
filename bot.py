@@ -60,7 +60,7 @@ class BotConfig:
         self.bot = bot
 
     def refferals(self, message):
-        ref_percent = get_item('settings', ['ref_percent'], ['id'], [1])[0][0]
+        config = get_config()
         user = get_item('user', '*', ['id'], [message.chat.id])[0]
 
         invited_user_count = len(get_item('user', ['id'], ['invited_by'], [user[0]]))
@@ -69,7 +69,7 @@ class BotConfig:
                               f'Ваш баланс: {float(user[2])} грн\n' +
                               f'Усього запрошено: {invited_user_count}\n' +
                               f'Ваш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\n' +
-                              f'Ви будете отримувати {ref_percent}% від суми обміну Ваших рефералів',
+                              f'Ви будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
                               reply_markup=self.refferals_markup)
 
     def get_request_for_withdrawal(self, message):
@@ -136,8 +136,8 @@ class BotConfig:
                                   reply_markup=self.back_markup)
 
     def confirm_exchange(self, message):
-        ref_percent = get_item('settings', ['ref_percent'], ['id'], [1])[0][0]
         user_answer = message.text
+        config = get_config()
         if len(user_answer.split()) == 2:
             user_id, withdraw_sum = user_answer.split()
             user_id = int(user_id.replace(' ', ''))
@@ -153,7 +153,7 @@ class BotConfig:
                         if ref:
                             ref = ref[0]
                             update_item('user', ['balance'],
-                                        [ref[2] + (round(withdraw_sum * (ref_percent / 100), 4))],
+                                        [ref[2] + (round(withdraw_sum * (config["ref_percent"] / 100), 4))],
                                         ['id'], [ref[0]])
                 else:
                     self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
@@ -223,14 +223,14 @@ class BotConfig:
         self.bot.send_message(message.chat.id, 'Ви на головній!', reply_markup=self.home_markup)
 
     def exchange_payeer_usd_to_uah(self, message):
-        payeer_account = get_item('settings', ['payeer_account'], ['id'], [1])[0][0]
-        self.bot.send_message(message.chat.id, f'Відправте суму для обміну на {payeer_account} від 0.2$ з коментарем: Ваша_карта.')
+        config = get_config()
+        self.bot.send_message(message.chat.id, f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: Ваша_карта.')
         self.bot.send_message(message.chat.id, f'Надішліть скрін переказу в бот та в описі до фото введіть номер карти, лише після цього заявку буде прийнято на розгляд. Максимальний термін обміну - 48 годин',
                               reply_markup=self.back_markup)
 
     def course(self, message):
-        payeer_usd_to_uah = get_item('settings', ['payeer_usd_to_uah'], ['id'], [1])[0][0]
-        self.bot.send_message(message.chat.id, f'Курс на {datetime.now().strftime("%Y.%m.%d")}\n1 Payeer USD ➡️ {payeer_usd_to_uah} UAH', reply_markup=self.back_markup)
+        config = get_config()
+        self.bot.send_message(message.chat.id, f'Курс на {datetime.now().strftime("%Y.%m.%d")}\n1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH', reply_markup=self.back_markup)
 
     def support(self, message):
         self.bot.send_message(message.chat.id, f'Контакти для отриманя підтримки: @arobotok202118 та @systnager',
