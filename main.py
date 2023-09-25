@@ -9,6 +9,7 @@ from requests.exceptions import ReadTimeout, ConnectionError
 from bot import BotConfig
 from business import *
 from database import get_item, update_item, write_new_item
+from mysql.connector.errors import OperationalError, InternalError
 
 load_dotenv()
 ADMIN_ID_LIST = [
@@ -29,20 +30,23 @@ def main():
     def start(message):
         bot.send_message(message.chat.id, f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
         user_id = message.chat.id
-        user = get_item('user', '*', ['id', [user_id]])[0]
+        user = get_item('user', '*', ['id'], [user_id])
+        print(user_id)
 
-        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else None
+        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else random.choice(ADMIN_ID_LIST)
         if not user:
             write_new_item('user', ['id', 'state', 'balance'], [user_id, 'default', 0])
-            ref = get_item('user', '*', ['id'], [ref_id])[0]
+            ref = get_item('user', '*', ['id'], [ref_id])
             if ref:
-                update_item('user', ['invited_by'], [ref_id], ['id'], [user_id])
-                bot.send_message(int(ref_id), f'У Вас новий реферал з ID: {user_id}')
+                if ref_id in ADMIN_ID_LIST:
+                    update_item('user', ['invited_by'], [ref_id],
+                                ['id'], [user_id])
+                    bot.send_message(int(ref_id), f'Вам приєднано вільного реферала з ID: {user_id} як адміну')
+                else:
+                    update_item('user', ['invited_by'], [ref_id], ['id'], [user_id])
+                    bot.send_message(int(ref_id), f'У Вас новий реферал з ID: {user_id}')
             else:
-                admin_id = random.choice(ADMIN_ID_LIST)
-                update_item('user', ['invited_by'], [admin_id],
-                            ['id'], [user_id])
-                bot.send_message(int(admin_id), f'Вам приєднано вільного реферала з ID: {user_id} як адміну')
+                bot.send_message(message.chat.id, f'Вас НЕ приєднано до реферера')
 
         bot_config.home(message)
 
@@ -139,5 +143,9 @@ if __name__ == '__main__':
             main()
         except (ReadTimeout, ConnectionError):
             print_log("Error with Internet connection")
+            time.sleep(1)
+            continue
+        except OperationalError:
+            print_log("Error with connection to database")
             time.sleep(1)
             continue
