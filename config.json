@@ -1,9 +1,5 @@
 {
     "ref_percent": 0.5,
-    "payeer_usd_to_uah": 36.33,
-    "payeer_account": "\u0456\u0432\u0430\u0456\u0432\u0430\u0456\u0432\u0430",
-    "EXCHANGE_REQUEST_CHAT_ID": -1001749858927,
-    "DEBUG_EXCHANGE_REQUEST_CHAT_ID": -993312734,
-    "AUTHENTICATION_TOKEN": "6037063888:AAHVm-IjLif82Wt-CNykhrRU3VsJqtecjYI",
-    "DEBUG_AUTHENTICATION_TOKEN": "6392565799:AAFzQy4uesuvZ-5gOhCcrvhYr_xdSalYqI8"
+    "payeer_usd_to_uah": 4321.0,
+    "payeer_account": "\u0438\u043f\u0430\u043c\u0432"
 }

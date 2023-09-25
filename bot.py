@@ -192,14 +192,14 @@ class BotConfig:
     def set_confirm_withdraw_state(self, message):
         update_item('user', ['state'], ['confirm_withdraw'],
                     ['id'], [message.chat.id])
-        self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була виплачена в грн, ' +
-                              f'через пробіл', reply_markup=self.back_markup)
+        self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була виплачена в грн, через пробіл',
+                              reply_markup=self.back_markup)
 
     def set_confirm_exchange_state(self, message):
         update_item('user', ['state'], ['confirm_exchange'],
                     ['id'], [message.chat.id])
-        self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була обміняна в грн, ' +
-                              f'через пробіл', reply_markup=self.back_markup)
+        self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була обміняна в грн, через пробіл',
+                              reply_markup=self.back_markup)
 
     def set_change_payeer_usd_to_uah_course_state(self, message):
         update_item('user', ['state'], ['change_payeer_usd_to_uah_course'],
@@ -210,14 +210,12 @@ class BotConfig:
     def set_change_payeer_account_state(self, message):
         update_item('user', ['state'], ['change_payeer_account'],
                     ['id'], [message.chat.id])
-        self.bot.send_message(message.chat.id, 'Введіть новий Payeer аккаунт',
-                              reply_markup=self.back_markup)
+        self.bot.send_message(message.chat.id, 'Введіть новий Payeer аккаунт', reply_markup=self.back_markup)
 
     def set_send_allert_for_all_users_state(self, message):
         update_item('user', ['state'], ['send_allert_for_all_users'],
                     ['id'], [message.chat.id])
-        self.bot.send_message(message.chat.id, 'Введіть текст сповіщення',
-                              reply_markup=self.back_markup)
+        self.bot.send_message(message.chat.id, 'Введіть текст сповіщення', reply_markup=self.back_markup)
 
     def home(self, message):
         user_id = message.chat.id
@@ -226,20 +224,14 @@ class BotConfig:
 
     def exchange_payeer_usd_to_uah(self, message):
         config = get_config()
-        self.bot.send_message(message.chat.id,
-                              f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: ' +
-                              f'Ваша_карта.')
-        self.bot.send_message(message.chat.id,
-                              f'Надішліть скрін переказу в бот та в описі до фото введіть номер карти, лише ' +
-                              f'після цього заявку буде прийнято на розгляд. Максимальний термін обміну - 48 годин',
+        self.bot.send_message(message.chat.id, f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: Ваша_карта.')
+        self.bot.send_message(message.chat.id, f'Надішліть скрін переказу в бот та в описі до фото введіть номер карти, лише після цього заявку буде прийнято на розгляд. Максимальний термін обміну - 48 годин',
                               reply_markup=self.back_markup)
 
     def course(self, message):
         config = get_config()
-        self.bot.send_message(message.chat.id, f'Курс на {datetime.now().strftime("%Y.%m.%d")}\n' +
-                              f'1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH', reply_markup=self.back_markup)
+        self.bot.send_message(message.chat.id, f'Курс на {datetime.now().strftime("%Y.%m.%d")}\n1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH', reply_markup=self.back_markup)
 
     def support(self, message):
-        self.bot.send_message(message.chat.id,
-                              f'Контакти для отриманя підтримки: @arobotok202118 та @systnager',
+        self.bot.send_message(message.chat.id, f'Контакти для отриманя підтримки: @arobotok202118 та @systnager',
                               reply_markup=self.back_markup)
