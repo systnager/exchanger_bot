@@ -76,40 +76,24 @@ class BotConfig:
         user_id = message.chat.id
         user = get_item('user', '*', ['id'], [user_id])[0]
         user_answer = message.text
-        print(user_answer)
         user_balance = user[2]
         if len(user_answer.split()) == 2:
             card_number, withdraw_money = user_answer.split()
             withdraw_money = withdraw_money.replace(' ', '')
             card_number = card_number.replace(' ', '')
-            if len(card_number) == 16:
-                try:
-                    int(card_number)
-                except ValueError:
-                    self.bot.send_message(message.chat.id, 'Номер карти може складатися лише з 16 цифр',
-                                          reply_markup=self.back_markup)
-                    return
-
-                try:
-                    float(withdraw_money)
-                except ValueError:
-                    self.bot.send_message(message.chat.id, 'Введено не валідне значення на місці суми для виводу',
-                                          reply_markup=self.back_markup)
-                    return
-
-                if float(withdraw_money) < 1:
-                    self.bot.send_message(message.chat.id,
-                                          f'Сума менше 1грн❗️',
-                                          reply_markup=self.back_markup)
-                elif float(withdraw_money) <= user_balance:
-                    update_item('user', ['balance'], [user[2] - round(float(withdraw_money), 2)],
+            if is_card_number_valid(card_number) and is_numeric(withdraw_money):
+                withdraw_money = float(withdraw_money)
+                if withdraw_money < 1:
+                    self.bot.send_message(message.chat.id, f'Сума менше 1грн❗️', reply_markup=self.back_markup)
+                elif withdraw_money <= user_balance:
+                    update_item('user', ['balance'], [user[2] - round(withdraw_money, 2)],
                                 ['id'], user[0])
                     self.bot.send_message(CHAT_ID, f'id: {message.chat.id}\n' +
                                           f'Номер карти: {card_number}\n' +
-                                          f'Сума для виплати: {round(float(withdraw_money), 2)}грн\n' +
+                                          f'Сума для виплати: {round(withdraw_money, 2)}грн\n' +
                                           f'@{message.from_user.username}')
                     self.bot.send_message(message.chat.id,
-                                          f'Заявку прийнято. Виплата {round(float(withdraw_money), 2)}грн ' +
+                                          f'Заявку прийнято. Виплата {round(withdraw_money, 2)}грн ' +
                                           f'відбудеться протягом 48 годин❗️',
                                           reply_markup=self.back_markup)
                 else:
@@ -117,7 +101,9 @@ class BotConfig:
                                           f'Недостатня сума для виводу на балансі❗️',
                                           reply_markup=self.back_markup)
             else:
-                self.bot.send_message(message.chat.id, 'Номер карти може складатися лише з 16 цифр',
+                self.bot.send_message(message.chat.id, 'Номер карти може складатися лише з 16 цифр!',
+                                      reply_markup=self.back_markup)
+                self.bot.send_message(message.chat.id, 'Сума для виводу повинна бути дійсним числом!',
                                       reply_markup=self.back_markup)
         else:
             if user_answer != "Вивести":
@@ -135,18 +121,16 @@ class BotConfig:
         if len(user_answer.split()) == 2:
             user_id, withdraw_sum = user_answer.split()
             user_id = int(user_id.replace(' ', ''))
-            try:
-                float(withdraw_sum)
-            except ValueError:
-                self.bot.send_message(message.chat.id, 'Некоректно вказано суму виплати', reply_markup=self.back_markup)
-
-            user = get_item('user', '*', ['id'], [user_id])[0]
-
-            if user:
-                self.bot.send_message(message.chat.id, 'Виплату успішно підтверджено', reply_markup=self.back_markup)
-                self.bot.send_message(user_id, f'Ваша заявка на виплату {withdraw_sum}грн виконана')
+            if is_numeric(withdraw_sum):
+                user = get_item('user', '*', ['id'], [user_id])
+                if user:
+                    self.bot.send_message(message.chat.id, 'Виплату успішно підтверджено',
+                                          reply_markup=self.back_markup)
+                    self.bot.send_message(user_id, f'Ваша заявка на виплату {withdraw_sum}грн виконана')
+                else:
+                    self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
             else:
-                self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
+                self.bot.send_message(message.chat.id, 'Некоректно вказано суму виплати', reply_markup=self.back_markup)
         else:
             self.bot.send_message(message.chat.id, 'Невалідні данні. Введіть айді користувача та суму через пробіл',
                                   reply_markup=self.back_markup)
@@ -157,37 +141,37 @@ class BotConfig:
         if len(user_answer.split()) == 2:
             user_id, withdraw_sum = user_answer.split()
             user_id = int(user_id.replace(' ', ''))
-            try:
-                float(withdraw_sum)
-            except ValueError:
-                self.bot.send_message(message.chat.id, 'Некоректно вказано суму обміну', reply_markup=self.back_markup)
-
-            user = get_item('user', '*', ['id'], [user_id])[0]
-
-            if user:
-                ref = get_item('user', '*', ['id'], [user[3]])[0]
-                update_item('user', ['balance'],
-                            [ref[2] + (round(float(withdraw_sum) * (config["ref_percent"] / 100), 4))],
-                            ['id'], [ref[0]])
-                self.bot.send_message(message.chat.id, 'Обмін успішно підтверджено', reply_markup=self.back_markup)
-                self.bot.send_message(user_id, f'Ваша заявка на обмін {withdraw_sum}грн виконана')
+            if is_numeric(withdraw_sum):
+                withdraw_sum = float(withdraw_sum)
+                user = get_item('user', '*', ['id'], [user_id])
+                if user:
+                    user = user[0]
+                    self.bot.send_message(message.chat.id, 'Обмін успішно підтверджено', reply_markup=self.back_markup)
+                    self.bot.send_message(user_id, f'Ваша заявка на обмін {withdraw_sum}грн виконана')
+                    if len(user) == 4:
+                        ref = get_item('user', '*', ['id'], [user[3]])
+                        if ref:
+                            ref = ref[0]
+                            update_item('user', ['balance'],
+                                        [ref[2] + (round(withdraw_sum * (config["ref_percent"] / 100), 4))],
+                                        ['id'], [ref[0]])
+                else:
+                    self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
             else:
-                self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
+                self.bot.send_message(message.chat.id, 'Некоректно вказано суму обміну', reply_markup=self.back_markup)
         else:
             self.bot.send_message(message.chat.id, 'Невалідні данні. Введіть айді користувача та суму через пробіл',
                                   reply_markup=self.back_markup)
 
     def change_payeer_usd_to_uah_course(self, message):
         user_answer = message.text
-        try:
-            float(user_answer)
-        except ValueError:
+        if is_numeric(user_answer):
+            user_answer = float(user_answer)
+            set_payeer_usd_to_uah_course(round(user_answer, 2))
+            self.bot.send_message(message.chat.id, f'Курс {round(user_answer, 2)} за 1$ Payeer встановлено',
+                                  reply_markup=self.back_markup)
+        else:
             self.bot.send_message(message.chat.id, 'Введено не число', reply_markup=self.back_markup)
-            return
-
-        set_payeer_usd_to_uah_course(round(float(user_answer), 2))
-        self.bot.send_message(message.chat.id, f'Курс {round(float(user_answer), 2)} за 1$ Payeer встановлено',
-                              reply_markup=self.back_markup)
 
     def change_payeer_account(self, message):
         payeer_account = message.text
@@ -195,15 +179,13 @@ class BotConfig:
         self.bot.send_message(message.chat.id, 'Payeer акаунт для обміну змінено', reply_markup=self.back_markup)
 
     def send_allert_for_all_users(self, message):
-        self.bot.send_message(message.chat.id, 'Зачекайте, надсилаю повідомлення',
-                              reply_markup=self.back_markup)
+        self.bot.send_message(message.chat.id, 'Зачекайте, надсилаю повідомлення', reply_markup=self.back_markup)
         for user in get_item('user', '*'):
             user_id = user[0]
             try:
                 self.bot.send_message(user_id, message.text)
             except ApiTelegramException:
                 continue
-
         self.bot.send_message(message.chat.id, 'Повідомлення відправлено всім користувачам бота',
                               reply_markup=self.back_markup)
 
