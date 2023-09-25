@@ -94,11 +94,11 @@ def main():
     @bot.message_handler(content_types=['photo'])
     def handle_photo(message):
         user_id = message.chat.id
-        config = get_config()
+        payeer_usd_to_uah = get_item('settings', ['payeer_usd_to_uah'], ['id'], [1])[0][0]
         user = get_item('user', '*', ['id'], [user_id])
         if user and message.caption:
             photo = message.photo[-1].file_id
-            bot.send_photo(CHAT_ID, photo, caption=f'курс: {config["payeer_usd_to_uah"]}\n' +
+            bot.send_photo(CHAT_ID, photo, caption=f'курс: {payeer_usd_to_uah}\n' +
                                                    f'id юзера: {message.chat.id}\n' +
                                                    f'комент юзера: {message.caption}\n' +
                                                    f'username: @{message.from_user.username}\n')
