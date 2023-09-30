@@ -11,16 +11,20 @@ def is_numeric(value):
 
 
 def is_card_number_valid(card_number):
+    card_number = card_number.replace(' ', '')
     if len(card_number) == 16:
         try:
             int(card_number)
         except ValueError:
             return False
+    else:
+        return False
     return True
 
 
-def print_log(log_text):
-    print(f'{datetime.now()} {log_text}')
+def print_log(*log_text):
+    for log in log_text:
+        print(f'{datetime.now()} {log}')
 
 
 def save_config(config):
