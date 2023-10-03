@@ -58,3 +58,29 @@ class Database:
         print(request)
         self.cursor.execute(request)
         self.conn.commit()
+
+    def get_user(self, user_id: int):
+        return self.get_item('user', '*', {'id': user_id})
+
+    def get_users(self):
+        return self.get_item('user', '*')
+
+    def add_new_user(self, user_id, state='default', balance=0, invited_by=None):
+        self.write_new_item('user', {
+            'id': user_id,
+            'state': state,
+            'balance': balance,
+            'invited_by': invited_by if invited_by else 'NULL',
+        })
+
+    def change_user_refer(self, user_id, refer_id):
+        self.update_item('user', {'invited_by': refer_id}, {'id': user_id})
+
+    def change_user_balance(self, user_id, balance):
+        self.update_item('user', {'balance': balance}, {'id': user_id})
+
+    def changer_user_state(self, user_id: int, state: str):
+        self.update_item('user', {'state': state}, {'id': user_id})
+
+    def get_user_referrals_count(self, user_id: int) -> int:
+        return len(self.get_item('user', filter_params={'invited_by': user_id}))
