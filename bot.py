@@ -72,7 +72,7 @@ class BotConfig:
         def start(message):
             self.bot.send_message(message.chat.id, f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
             user_id = message.chat.id
-            user = self.database.get_item('user', '*', {'id': user_id})
+            user = self.database.get_user(user_id)
             ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else random.choice(ADMIN_ID_LIST)
             if not user:
                 self._register_new_user(message, user_id, ref_id)
@@ -82,7 +82,7 @@ class BotConfig:
         @self.bot.message_handler(func=lambda message: True)
         def handle_button_click(message):
             user_id = message.chat.id
-            user = self.database.get_item('user', '*', {'id': user_id})
+            user = self.database.get_user(user_id)
 
             user_action = {
                 'Головна': lambda: self.home(message),
@@ -114,7 +114,7 @@ class BotConfig:
                 if message.text in user_action:
                     user_action[message.text]()
                 if user_id in ADMIN_ID_LIST:
-                    user = self.database.get_item('user', '*', {'id': user_id})
+                    user = self.database.get_user(user_id)
                     user = user[0]
                     if message.text in admin_action:
                         admin_action[message.text]()
@@ -127,7 +127,7 @@ class BotConfig:
         def handle_photo(message):
             user_id = message.chat.id
             payeer_usd_to_uah = get_config()['payeer_usd_to_uah']
-            user = self.database.get_item('user', '*', {'id': user_id})
+            user = self.database.get_user(user_id)
             if user and message.caption:
                 photo = message.photo[-1].file_id
                 self.bot.send_photo(CHAT_ID, photo, caption=f'курс: {payeer_usd_to_uah}\nid юзера: {message.chat.id}\nкомент юзера: {message.caption}\nusername: @{message.from_user.username}\n')
@@ -142,16 +142,17 @@ class BotConfig:
 
     def referrals(self, message):
         config = get_config()
-        user = self.database.get_item('user', '*', {'id': message.chat.id})[0]
+        user = self.database.get_user(message.chat.id)
+        if user:
+            user = user[0]
+            invited_user_count = self.database.get_user_referrals_count(user[0])
 
-        invited_user_count = len(self.database.get_item('user', ['id'], {'invited_by': user[0]}))
-
-        self.bot.send_message(message.chat.id,
-                              f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
-                              reply_markup=self.referrals_markup)
+            self.bot.send_message(message.chat.id,
+                                  f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
+                                  reply_markup=self.referrals_markup)
 
     def get_request_for_withdrawal(self, message):
-        user = self.database.get_item('user', '*', {'id': message.chat.id})
+        user = self.database.get_user(message.chat.id)
         if user:
             user = user[0]
             user_answer = message.text
@@ -175,7 +176,7 @@ class BotConfig:
 
     def withdraw(self, message):
         user_id = message.chat.id
-        self.database.update_item('user', {'state': 'withdraw'}, {'id': user_id})
+        self.database.changer_user_state(user_id, 'withdraw')
         self.bot.send_message(message.chat.id, 'Введіть номер карти + суму для виводу від 1грн через пробіл',
                               reply_markup=self.back_markup)
 
@@ -189,7 +190,7 @@ class BotConfig:
                 return
 
             if is_numeric(withdraw_sum):
-                user = self.database.get_item('user', '*', {'id': user_id})
+                user = self.database.get_user(user_id)
                 if user:
                     self.bot.send_message(message.chat.id, 'Виплату успішно підтверджено',
                                           reply_markup=self.back_markup)
@@ -214,7 +215,7 @@ class BotConfig:
             user_id = int(user_id)
             if is_numeric(withdraw_sum):
                 withdraw_sum = float(withdraw_sum)
-                user = self.database.get_item('user', '*', {'id': user_id})
+                user = self.database.get_user(user_id)
                 self._make_exchange(message, user, withdraw_sum, config)
             else:
                 self.bot.send_message(message.chat.id, 'Некоректно вказано суму обміну', reply_markup=self.back_markup)
@@ -239,7 +240,7 @@ class BotConfig:
 
     def send_alert_for_all_users(self, message):
         self.bot.send_message(message.chat.id, 'Зачекайте, надсилаю повідомлення', reply_markup=self.back_markup)
-        for user in self.database.get_item('user', '*'):
+        for user in self.database.get_users():
             user_id = user[0]
             try:
                 self.bot.send_message(user_id, message.text)
@@ -249,31 +250,31 @@ class BotConfig:
                               reply_markup=self.back_markup)
 
     def set_confirm_withdraw_state(self, message):
-        self.database.update_item('user', {'state': 'confirm_withdraw'}, {'id': message.chat.id})
+        self.database.changer_user_state(message.chat.id, 'confirm_withdraw')
         self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була виплачена в грн, через пробіл',
                               reply_markup=self.back_markup)
 
     def set_confirm_exchange_state(self, message):
-        self.database.update_item('user', {'state': 'confirm_exchange'}, {'id': message.chat.id})
+        self.database.changer_user_state(message.chat.id, 'confirm_exchange')
         self.bot.send_message(message.chat.id, 'Введіть ID користувача та суму, що була обміняна в грн, через пробіл',
                               reply_markup=self.back_markup)
 
     def set_change_payeer_usd_to_uah_course_state(self, message):
-        self.database.update_item('user', {'state': 'change_payeer_usd_to_uah_course'}, {'id': message.chat.id})
+        self.database.changer_user_state(message.chat.id, 'change_payeer_usd_to_uah_course')
         self.bot.send_message(message.chat.id, 'Введіть курс Payeer - UAH до 4 знаків після коми',
                               reply_markup=self.back_markup)
 
     def set_change_payeer_account_state(self, message):
-        self.database.update_item('user', {'state': 'change_payeer_account'}, {'id': message.chat.id})
+        self.database.changer_user_state(message.chat.id, 'change_payeer_account')
         self.bot.send_message(message.chat.id, 'Введіть новий Payeer аккаунт', reply_markup=self.back_markup)
 
     def set_send_alert_for_all_users_state(self, message):
-        self.database.update_item('user', {'state': 'send_alert_for_all_users'}, {'id': message.chat.id})
+        self.database.changer_user_state(message.chat.id, 'send_alert_for_all_users')
         self.bot.send_message(message.chat.id, 'Введіть текст сповіщення', reply_markup=self.back_markup)
 
     def home(self, message):
         user_id = message.chat.id
-        self.database.update_item('user', {'state': 'default'}, {'id': user_id})
+        self.database.changer_user_state(user_id, 'default')
         self.bot.send_message(message.chat.id, 'Ви на головній!', reply_markup=self.home_markup)
 
     def exchange_payeer_usd_to_uah(self, message):
@@ -295,18 +296,14 @@ class BotConfig:
                               reply_markup=self.back_markup)
 
     def _register_new_user(self, message, user_id, ref_id):
-        self.database.write_new_item('user', {
-            'id': user_id,
-            'state': 'default',
-            'balance': 0,
-        })
-        ref = self.database.get_item('user', '*', {'id': ref_id})
+        self.database.add_new_user(user_id)
+        ref = self.database.get_user(ref_id)
         if ref:
             if ref_id in ADMIN_ID_LIST:
-                self.database.update_item('user', {'invited_by': ref_id}, {'id': user_id})
+                self.database.change_user_refer(user_id, ref_id)
                 self.bot.send_message(int(ref_id), f'Вам приєднано вільного реферала з ID: {user_id} як адміну')
             else:
-                self.database.update_item('user', {'invited_by': ref_id}, {'id': user_id})
+                self.database.change_user_refer(user_id, ref_id)
                 self.bot.send_message(int(ref_id), f'У Вас новий реферал з ID: {user_id}')
         else:
             self.bot.send_message(message.chat.id, f'Вас НЕ приєднано до реферера')
@@ -317,15 +314,10 @@ class BotConfig:
             self.bot.send_message(message.chat.id, 'Обмін успішно підтверджено', reply_markup=self.back_markup)
             self.bot.send_message(user[0], f'Ваша заявка на обмін {withdraw_sum}грн виконана')
             if len(user) == 4:
-                print(user)
-                ref = self.database.get_item('user', '*', {'id': user[3] if user[3] is not None else 'NULL'})
+                ref = self.database.get_user(user[3] if user[3] is not None else 'NULL')
                 if ref:
                     ref = ref[0]
-                    print(round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4)
-                    print(ref[2] + round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4)
-                    self.database.update_item('user', {
-                        'balance': ref[2] + round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4
-                    }, {'id': ref[0]})
+                    self.database.change_user_balance(ref[0], ref[2] + round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4)
         else:
             self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
 
@@ -334,8 +326,7 @@ class BotConfig:
         if withdraw_money < 1:
             self.bot.send_message(message.chat.id, f'Сума менше 1грн❗️', reply_markup=self.back_markup)
         elif withdraw_money <= user_balance:
-            self.database.update_item('user', {'balance': user[2] - (round(withdraw_money * 100) / 100)},
-                                      {'id': user[0]})
+            self.database.change_user_balance(user[0], user[2] - (round(withdraw_money * 100) / 100))
             self.bot.send_message(CHAT_ID,
                                   f'id: {message.chat.id}\nНомер карти: {card_number}\nСума для виплати: {withdraw_money:.2f}грн\n@{message.from_user.username}')
             self.bot.send_message(message.chat.id,
