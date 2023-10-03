@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 from telebot import types
 from telebot.apihelper import ApiTelegramException
 
-from business import is_numeric, get_config, set_payeer_account, set_payeer_usd_to_uah_course, is_card_number_valid, datetime
+from business import is_numeric, get_config, set_payeer_account, set_payeer_usd_to_uah_course, is_card_number_valid, \
+    datetime
 
 load_dotenv()
 ADMIN_ID_LIST = [
@@ -22,7 +23,7 @@ CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 class BotConfig:
     home_button = types.KeyboardButton('Головна')
     payeer_usd_to_uah_button = types.KeyboardButton('Payeer USD\n' + 'Карта UAH')
-    refferals_button = types.KeyboardButton('Реферали')
+    referrals_button = types.KeyboardButton('Реферали')
     course_button = types.KeyboardButton('Курс обміну')
     support_button = types.KeyboardButton('Підтримка')
     withdraw_button = types.KeyboardButton('Вивести')
@@ -36,20 +37,20 @@ class BotConfig:
     back_markup = types.ReplyKeyboardMarkup(row_width=1)
     home_markup = types.ReplyKeyboardMarkup(row_width=2)
     admin_markup = types.ReplyKeyboardMarkup(row_width=2)
-    refferals_markup = types.ReplyKeyboardMarkup(row_width=2)
+    referrals_markup = types.ReplyKeyboardMarkup(row_width=2)
     back_markup.add(
         home_button,
     )
 
     home_markup.add(
         payeer_usd_to_uah_button,
-        refferals_button,
+        referrals_button,
         course_button,
         support_button,
         admin_options_button,
     )
 
-    refferals_markup.add(
+    referrals_markup.add(
         withdraw_button,
         home_button
     )
@@ -86,7 +87,7 @@ class BotConfig:
             user_action = {
                 'Головна': lambda: self.home(message),
                 'Payeer USD\nКарта UAH': lambda: self.exchange_payeer_usd_to_uah(message),
-                'Реферали': lambda: self.refferals(message),
+                'Реферали': lambda: self.referrals(message),
                 'Курс обміну': lambda: self.course(message),
                 'Підтримка': lambda: self.support(message),
                 'Вивести': lambda: self.withdraw(message),
@@ -129,10 +130,7 @@ class BotConfig:
             user = self.database.get_item('user', '*', {'id': user_id})
             if user and message.caption:
                 photo = message.photo[-1].file_id
-                self.bot.send_photo(CHAT_ID, photo, caption=f'курс: {payeer_usd_to_uah}\n' +
-                                                            f'id юзера: {message.chat.id}\n' +
-                                                            f'комент юзера: {message.caption}\n' +
-                                                            f'username: @{message.from_user.username}\n')
+                self.bot.send_photo(CHAT_ID, photo, caption=f'курс: {payeer_usd_to_uah}\nid юзера: {message.chat.id}\nкомент юзера: {message.caption}\nusername: @{message.from_user.username}\n')
 
                 self.bot.send_message(message.chat.id, f'Заявку прийнято. Обмін відбудеться протягом 48 годин❗️',
                                       reply_markup=self.back_markup)
@@ -142,57 +140,38 @@ class BotConfig:
     def start(self):
         self.bot.polling()
 
-    def refferals(self, message):
+    def referrals(self, message):
         config = get_config()
         user = self.database.get_item('user', '*', {'id': message.chat.id})[0]
 
         invited_user_count = len(self.database.get_item('user', ['id'], {'invited_by': user[0]}))
 
         self.bot.send_message(message.chat.id,
-                              f'Ваш баланс: {float(user[2])} грн\n' +
-                              f'Усього запрошено: {invited_user_count}\n' +
-                              f'Ваш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\n' +
-                              f'Ви будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
-                              reply_markup=self.refferals_markup)
+                              f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
+                              reply_markup=self.referrals_markup)
 
     def get_request_for_withdrawal(self, message):
-        user_id = message.chat.id
-        user = self.database.get_item('user', '*', {'id': user_id})[0]
-        user_answer = message.text
-        user_balance = user[2]
-        if len(user_answer.split()) == 2:
-            card_number, withdraw_money = user_answer.split()
-            withdraw_money = withdraw_money.replace(' ', '')
-            card_number = card_number.replace(' ', '')
-            print(is_card_number_valid(card_number))
-            if is_card_number_valid(card_number) and is_numeric(withdraw_money):
-                withdraw_money = float(withdraw_money)
-                if withdraw_money < 1:
-                    self.bot.send_message(message.chat.id, f'Сума менше 1грн❗️', reply_markup=self.back_markup)
-                elif withdraw_money <= user_balance:
-                    self.database.update_item('user', {'balance': user[2] - round(withdraw_money, 2)}, {'id': user[0]})
-                    self.bot.send_message(CHAT_ID, f'id: {message.chat.id}\n' +
-                                          f'Номер карти: {card_number}\n' +
-                                          f'Сума для виплати: {round(withdraw_money, 2)}грн\n' +
-                                          f'@{message.from_user.username}')
-                    self.bot.send_message(message.chat.id,
-                                          f'Заявку прийнято. Виплата {round(withdraw_money, 2)}грн ' +
-                                          f'відбудеться протягом 48 годин❗️',
-                                          reply_markup=self.back_markup)
+        user = self.database.get_item('user', '*', {'id': message.chat.id})
+        if user:
+            user = user[0]
+            user_answer = message.text
+            if len(user_answer.split()) == 2:
+                card_number, withdraw_money = user_answer.split()
+                withdraw_money = withdraw_money.replace(' ', '')
+                card_number = card_number.replace(' ', '')
+                if is_card_number_valid(card_number) and is_numeric(withdraw_money):
+                    withdraw_money = float(withdraw_money)
+                    self._withdrawal_request_processing(message, user, withdraw_money, card_number)
                 else:
-                    self.bot.send_message(message.chat.id,
-                                          f'Недостатня сума для виводу на балансі❗️',
+                    self.bot.send_message(message.chat.id, 'Номер карти може складатися лише з 16 цифр!',
+                                          reply_markup=self.back_markup)
+                    self.bot.send_message(message.chat.id, 'Сума для виводу повинна бути дійсним числом!',
                                           reply_markup=self.back_markup)
             else:
-                self.bot.send_message(message.chat.id, 'Номер карти може складатися лише з 16 цифр!',
-                                      reply_markup=self.back_markup)
-                self.bot.send_message(message.chat.id, 'Сума для виводу повинна бути дійсним числом!',
-                                      reply_markup=self.back_markup)
-        else:
-            if user_answer != "Вивести":
-                self.bot.send_message(message.chat.id, 'Невалідна команда. Введіть номер карти та суму через пробіл')
-                self.bot.send_message(message.chat.id, 'Ось приклад, як потрібно ввести данні: 4114544287780987 1.23',
-                                      reply_markup=self.back_markup)
+                if user_answer != "Вивести":
+                    self.bot.send_message(message.chat.id, 'Невалідна команда. Введіть номер карти та суму через пробіл')
+                    self.bot.send_message(message.chat.id, 'Ось приклад, як потрібно ввести данні: 4114544287780987 1.23',
+                                          reply_markup=self.back_markup)
 
     def withdraw(self, message):
         user_id = message.chat.id
@@ -204,7 +183,11 @@ class BotConfig:
         user_answer = message.text
         if len(user_answer.split()) == 2:
             user_id, withdraw_sum = user_answer.split()
-            user_id = int(user_id.replace(' ', ''))
+            user_id = user_id.replace(' ', '')
+            if not is_numeric(user_id):
+                self.bot.send_message(message.chat.id, 'Невалідний ID користувача', reply_markup=self.back_markup)
+                return
+
             if is_numeric(withdraw_sum):
                 user = self.database.get_item('user', '*', {'id': user_id})
                 if user:
@@ -224,24 +207,15 @@ class BotConfig:
         config = get_config()
         if len(user_answer.split()) == 2:
             user_id, withdraw_sum = user_answer.split()
-            user_id = int(user_id.replace(' ', ''))
+            user_id = user_id.replace(' ', '')
+            if not is_numeric(user_id):
+                self.bot.send_message(message.chat.id, 'Невалідний ID користувача', reply_markup=self.back_markup)
+                return
+            user_id = int(user_id)
             if is_numeric(withdraw_sum):
                 withdraw_sum = float(withdraw_sum)
                 user = self.database.get_item('user', '*', {'id': user_id})
-                if user:
-                    user = user[0]
-                    self.bot.send_message(message.chat.id, 'Обмін успішно підтверджено', reply_markup=self.back_markup)
-                    self.bot.send_message(user_id, f'Ваша заявка на обмін {withdraw_sum}грн виконана')
-                    if len(user) == 4:
-                        print(user)
-                        ref = self.database.get_item('user', '*', {'id': user[3] if user[3] is not None else 'NULL'})
-                        if ref:
-                            ref = ref[0]
-                            self.database.update_item('user', {
-                                'balance': ref[2] + (round(withdraw_sum * (config["ref_percent"] / 100), 4))
-                            }, {'id': ref[0]})
-                else:
-                    self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
+                self._make_exchange(message, user, withdraw_sum, config)
             else:
                 self.bot.send_message(message.chat.id, 'Некоректно вказано суму обміну', reply_markup=self.back_markup)
         else:
@@ -252,8 +226,8 @@ class BotConfig:
         user_answer = message.text
         if is_numeric(user_answer):
             user_answer = float(user_answer)
-            set_payeer_usd_to_uah_course(round(user_answer, 2))
-            self.bot.send_message(message.chat.id, f'Курс {round(user_answer, 2)} за 1$ Payeer встановлено',
+            set_payeer_usd_to_uah_course(round(user_answer*100)/100)
+            self.bot.send_message(message.chat.id, f'Курс {user_answer:.2f} за 1$ Payeer встановлено',
                                   reply_markup=self.back_markup)
         else:
             self.bot.send_message(message.chat.id, 'Введено не число', reply_markup=self.back_markup)
@@ -336,3 +310,37 @@ class BotConfig:
                 self.bot.send_message(int(ref_id), f'У Вас новий реферал з ID: {user_id}')
         else:
             self.bot.send_message(message.chat.id, f'Вас НЕ приєднано до реферера')
+
+    def _make_exchange(self, message, user, withdraw_sum, config):
+        if user:
+            user = user[0]
+            self.bot.send_message(message.chat.id, 'Обмін успішно підтверджено', reply_markup=self.back_markup)
+            self.bot.send_message(user[0], f'Ваша заявка на обмін {withdraw_sum}грн виконана')
+            if len(user) == 4:
+                print(user)
+                ref = self.database.get_item('user', '*', {'id': user[3] if user[3] is not None else 'NULL'})
+                if ref:
+                    ref = ref[0]
+                    print(round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4)
+                    print(ref[2] + round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4)
+                    self.database.update_item('user', {
+                        'balance': ref[2] + round((withdraw_sum * (config["ref_percent"] / 100))*10**4)/10**4
+                    }, {'id': ref[0]})
+        else:
+            self.bot.send_message(message.chat.id, 'Користувача не знайдено', reply_markup=self.back_markup)
+
+    def _withdrawal_request_processing(self, message, user, withdraw_money, card_number):
+        user_balance = user[2]
+        if withdraw_money < 1:
+            self.bot.send_message(message.chat.id, f'Сума менше 1грн❗️', reply_markup=self.back_markup)
+        elif withdraw_money <= user_balance:
+            self.database.update_item('user', {'balance': user[2] - (round(withdraw_money * 100) / 100)},
+                                      {'id': user[0]})
+            self.bot.send_message(CHAT_ID,
+                                  f'id: {message.chat.id}\nНомер карти: {card_number}\nСума для виплати: {withdraw_money:.2f}грн\n@{message.from_user.username}')
+            self.bot.send_message(message.chat.id,
+                                  f'Заявку прийнято. Виплата {withdraw_money:.2f}грн відбудеться протягом 48 годин❗️',
+                                  reply_markup=self.back_markup)
+        else:
+            self.bot.send_message(message.chat.id, f'Недостатня сума для виводу на балансі❗️',
+                                  reply_markup=self.back_markup)
