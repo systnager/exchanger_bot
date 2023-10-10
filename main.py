@@ -1,22 +1,22 @@
-import time
-from mysql.connector.errors import OperationalError
-from requests.exceptions import ReadTimeout, ConnectionError
-from business import print_log
+import asyncio
+import logging
+import sys
+
 from bot import BotConfig
 from database import Database
 
-if __name__ == '__main__':
+
+async def start_bot():
     database = Database()
-    bot = BotConfig(database)
-    while True:
-        try:
-            bot.start()
-        except (ReadTimeout, ConnectionError):
-            print_log("Error with Internet connection")
-            time.sleep(1)
-            continue
-        except OperationalError:
-            print_log("Error with connection to database")
-            database.connect_to_database()
-            time.sleep(1)
-            continue
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    bot_config = BotConfig(database)
+    await bot_config.start()
+
+
+async def main():
+    # Start the bot
+    await start_bot()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
