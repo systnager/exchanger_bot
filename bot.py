@@ -24,7 +24,7 @@ CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 class BotConfig:
     home_button = KeyboardButton(text='Головна')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
-    referrals_button = KeyboardButton(text='Реферали')
+    cabinet_button = KeyboardButton(text='Кабінет')
     course_button = KeyboardButton(text='Курс обміну')
     support_button = KeyboardButton(text='Підтримка')
     withdraw_button = KeyboardButton(text='Вивести')
@@ -46,7 +46,7 @@ class BotConfig:
 
     home_builder.row(
         payeer_usd_to_uah_button,
-        referrals_button,
+        cabinet_button,
     ).row(
         course_button,
         support_button,
@@ -86,16 +86,14 @@ class BotConfig:
     async def start(self):
         await self.dp.start_polling(self.bot)
 
-    async def referrals(self, message):
+    async def cabinet(self, message):
         config = get_config()
-        user = self.database.get_user(message.chat.id)
-        if user:
-            user = user[0]
-            invited_user_count = self.database.get_user_referrals_count(user[0])
+        user = self.database.get_user(message.chat.id)[0]
+        invited_user_count = self.database.get_user_referrals_count(user[0])
 
-            await self.bot.send_message(message.from_user.id,
-                                        f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
-                                        reply_markup=self.referrals_builder.as_markup(resize_keyboard=True))
+        await self.bot.send_message(message.from_user.id,
+                                    f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nВаш Payeer акаунт: {user[5]}\nНомер Вашої карти: {user[6]}\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
+                                    reply_markup=self.referrals_builder.as_markup(resize_keyboard=True))
 
     async def get_request_for_withdrawal(self, message):
         user = self.database.get_user(message.chat.id)
@@ -279,12 +277,11 @@ class BotConfig:
             await self.bot.send_message(message.chat.id, 'Обмін успішно підтверджено',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
             await self.bot.send_message(user[0], f'Ваша заявка на обмін {withdraw_sum}грн виконана')
-            if len(user) == 4:
-                ref = self.database.get_user(user[3] if user[3] is not None else 'NULL')
-                if ref:
-                    ref = ref[0]
-                    self.database.change_user_balance(ref[0], ref[2] + round(
-                        (withdraw_sum * (config["ref_percent"] / 100)) * 10 ** 4) / 10 ** 4)
+            ref = self.database.get_user(user[3] if user[3] is not None else 'NULL')
+            if ref:
+                ref = ref[0]
+                self.database.change_user_balance(ref[0], ref[2] + round(
+                    (withdraw_sum * (config["ref_percent"] / 100)) * 10 ** 4) / 10 ** 4)
         else:
             await self.bot.send_message(message.from_user.id, 'Користувача не знайдено',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
@@ -323,7 +320,7 @@ class BotConfig:
         user_action = {
             'Головна': lambda: self.home(message),
             'Payeer USD\nКарта UAH': lambda: self.exchange_payeer_usd_to_uah(message),
-            'Реферали': lambda: self.referrals(message),
+            'Кабінет': lambda: self.cabinet(message),
             'Курс обміну': lambda: self.course(message),
             'Підтримка': lambda: self.support(message),
             'Вивести': lambda: self.withdraw(message),
