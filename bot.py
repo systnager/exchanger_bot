@@ -25,6 +25,7 @@ class BotConfig:
     home_button = KeyboardButton(text='Головна')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
     cabinet_button = KeyboardButton(text='Кабінет')
+    change_payeer_account_button = KeyboardButton(text='Змінити Payeer акаунт')
     course_button = KeyboardButton(text='Курс обміну')
     support_button = KeyboardButton(text='Підтримка')
     withdraw_button = KeyboardButton(text='Вивести')
@@ -67,6 +68,8 @@ class BotConfig:
 
     cabinet_builder.row(
         withdraw_button,
+        change_payeer_account_button,
+    ).row(
         home_button,
     )
 
@@ -94,6 +97,23 @@ class BotConfig:
         await self.bot.send_message(message.from_user.id,
                                     f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nВаш Payeer акаунт: {user[5]}\nНомер Вашої карти: {user[6]}\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
                                     reply_markup=self.cabinet_builder.as_markup(resize_keyboard=True))
+
+    async def change_user_payeer_account(self, message):
+        user_id = message.from_user.id
+        user = self.database.get_user(user_id)
+        if user:
+            self.database.changer_user_state(user_id, 'change_user_payeer_account_state')
+            await self.bot.send_message(message.from_user.id, 'Введіть Ваш  Payeer акаунт',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def change_user_payeer_account_state(self, message):
+        user_id = message.from_user.id
+        user = self.database.get_user(user_id)
+        if user:
+            self.database.changer_user_state(user_id, 'default')
+            self.database.changer_user_payeer_account(user_id, message.text)
+            await self.bot.send_message(message.from_user.id, 'Ваш Payeer акаунт оновлено',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def get_request_for_withdrawal(self, message):
         user = self.database.get_user(message.chat.id)
@@ -188,7 +208,7 @@ class BotConfig:
             await self.bot.send_message(message.from_user.id, 'Введено не число',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
-    async def change_payeer_account(self, message):
+    async def change_bot_payeer_account(self, message):
         payeer_account = message.text
         set_payeer_account(payeer_account)
         await self.bot.send_message(message.from_user.id, 'Payeer акаунт для обміну змінено',
@@ -324,6 +344,9 @@ class BotConfig:
             'Курс обміну': lambda: self.course(message),
             'Підтримка': lambda: self.support(message),
             'Вивести': lambda: self.withdraw(message),
+            'Змінити Payeer акаунт': lambda: self.change_user_payeer_account(message),
+
+            'change_user_payeer_account_state': lambda: self.change_user_payeer_account_state(message),
         }
 
         admin_action = {
@@ -339,14 +362,17 @@ class BotConfig:
             'confirm_withdraw': lambda: self.confirm_withdraw(message),
             'confirm_exchange': lambda: self.confirm_exchange(message),
             'change_payeer_usd_to_uah_course': lambda: self.change_payeer_usd_to_uah_course(message),
-            'change_payeer_account': lambda: self.change_payeer_account(message),
+            'change_payeer_account': lambda: self.change_bot_payeer_account(message),
             'send_alert_for_all_users': lambda: self.send_alert_for_all_users(message),
         }
 
         if user:
+            user = user[0]
             if message.text in user_action:
                 await user_action[message.text]()
-            if user_id in ADMIN_ID_LIST:
+            elif user[1] in user_action:
+                await user_action[user[1]]()
+            elif user_id in ADMIN_ID_LIST:
                 user = self.database.get_user(user_id)
                 user = user[0]
                 if message.text in admin_action:

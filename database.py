@@ -82,5 +82,8 @@ class Database:
     def changer_user_state(self, user_id: int, state: str):
         self.update_item('user', {'state': state}, {'id': user_id})
 
+    def changer_user_payeer_account(self, user_id: int, payeer_account: str):
+        self.update_item('user', {'payeer_account': payeer_account}, {'id': user_id})
+
     def get_user_referrals_count(self, user_id: int) -> int:
         return len(self.get_item('user', filter_params={'invited_by': user_id}))
