@@ -38,7 +38,7 @@ class BotConfig:
     back_builder = ReplyKeyboardBuilder()
     home_builder = ReplyKeyboardBuilder()
     admin_builder = ReplyKeyboardBuilder()
-    referrals_builder = ReplyKeyboardBuilder()
+    cabinet_builder = ReplyKeyboardBuilder()
 
     back_builder.row(
         home_button,
@@ -65,7 +65,7 @@ class BotConfig:
         home_button,
     )
 
-    referrals_builder.row(
+    cabinet_builder.row(
         withdraw_button,
         home_button,
     )
@@ -93,7 +93,7 @@ class BotConfig:
 
         await self.bot.send_message(message.from_user.id,
                                     f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nВаш Payeer акаунт: {user[5]}\nНомер Вашої карти: {user[6]}\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
-                                    reply_markup=self.referrals_builder.as_markup(resize_keyboard=True))
+                                    reply_markup=self.cabinet_builder.as_markup(resize_keyboard=True))
 
     async def get_request_for_withdrawal(self, message):
         user = self.database.get_user(message.chat.id)
