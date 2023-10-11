@@ -108,10 +108,15 @@ class BotConfig:
 
     async def change_user_payeer_account_state(self, message):
         user_id = message.from_user.id
-        self.database.changer_user_state(user_id, 'default')
-        self.database.changer_user_payeer_account(user_id, message.text)
-        await self.bot.send_message(message.from_user.id, 'Ваш Payeer акаунт оновлено',
-                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        if message.text:
+            if message.text[0] == 'P':
+                self.database.changer_user_state(user_id, 'default')
+                self.database.changer_user_payeer_account(user_id, message.text)
+                await self.bot.send_message(message.from_user.id, 'Ваш Payeer акаунт оновлено',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+            else:
+                await self.bot.send_message(message.from_user.id, 'Некоректний запис. Приклад: P12345',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def change_user_card_number(self, message):
         user_id = message.from_user.id
