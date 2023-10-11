@@ -25,7 +25,8 @@ class BotConfig:
     home_button = KeyboardButton(text='Головна')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
     cabinet_button = KeyboardButton(text='Кабінет')
-    change_payeer_account_button = KeyboardButton(text='Змінити Payeer акаунт')
+    change_user_payeer_account_button = KeyboardButton(text='Змінити Payeer акаунт')
+    change_user_card_number_button = KeyboardButton(text='Змінити номер банківської карти')
     course_button = KeyboardButton(text='Курс обміну')
     support_button = KeyboardButton(text='Підтримка')
     withdraw_button = KeyboardButton(text='Вивести')
@@ -68,8 +69,9 @@ class BotConfig:
 
     cabinet_builder.row(
         withdraw_button,
-        change_payeer_account_button,
+        change_user_payeer_account_button,
     ).row(
+        change_user_card_number_button,
         home_button,
     )
 
@@ -100,19 +102,33 @@ class BotConfig:
 
     async def change_user_payeer_account(self, message):
         user_id = message.from_user.id
-        user = self.database.get_user(user_id)
-        if user:
-            self.database.changer_user_state(user_id, 'change_user_payeer_account_state')
-            await self.bot.send_message(message.from_user.id, 'Введіть Ваш  Payeer акаунт',
-                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        self.database.changer_user_state(user_id, 'change_user_payeer_account_state')
+        await self.bot.send_message(message.from_user.id, 'Введіть Ваш  Payeer акаунт',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def change_user_payeer_account_state(self, message):
         user_id = message.from_user.id
-        user = self.database.get_user(user_id)
-        if user:
+        self.database.changer_user_state(user_id, 'default')
+        self.database.changer_user_payeer_account(user_id, message.text)
+        await self.bot.send_message(message.from_user.id, 'Ваш Payeer акаунт оновлено',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def change_user_card_number(self, message):
+        user_id = message.from_user.id
+        self.database.changer_user_state(user_id, 'change_user_card_number_state')
+        await self.bot.send_message(message.from_user.id, 'Введіть номер Вашої банківської карти',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def change_user_card_number_state(self, message):
+        user_id = message.from_user.id
+        card_number = message.text.replace(' ', '')
+        if is_card_number_valid(card_number):
             self.database.changer_user_state(user_id, 'default')
-            self.database.changer_user_payeer_account(user_id, message.text)
-            await self.bot.send_message(message.from_user.id, 'Ваш Payeer акаунт оновлено',
+            self.database.changer_user_card_number(user_id, int(card_number))
+            await self.bot.send_message(message.from_user.id, 'Номер Вашої банківської карти оновлено',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        else:
+            await self.bot.send_message(message.from_user.id, 'Номер карти повинен складатися з 16 цифр без пробілів',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def get_request_for_withdrawal(self, message):
@@ -345,8 +361,10 @@ class BotConfig:
             'Підтримка': lambda: self.support(message),
             'Вивести': lambda: self.withdraw(message),
             'Змінити Payeer акаунт': lambda: self.change_user_payeer_account(message),
+            'Змінити номер банківської карти': lambda: self.change_user_card_number(message),
 
             'change_user_payeer_account_state': lambda: self.change_user_payeer_account_state(message),
+            'change_user_card_number_state': lambda: self.change_user_card_number_state(message),
         }
 
         admin_action = {
