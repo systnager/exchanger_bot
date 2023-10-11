@@ -11,10 +11,7 @@ from dotenv import load_dotenv
 from business import *
 
 load_dotenv()
-ADMIN_ID_LIST = [
-    616356243,
-    1760269999,
-]
+
 IS_DEBUG = True if os.getenv('IS_DEBUG') == "True" else False
 CHAT_ID = os.getenv('DEBUG_EXCHANGE_REQUEST_CHAT_ID') if IS_DEBUG else os.getenv('EXCHANGE_REQUEST_CHAT_ID')
 AUTHENTICATION_TOKEN = os.getenv('DEBUG_AUTHENTICATION_TOKEN') if IS_DEBUG else os.getenv('AUTHENTICATION_TOKEN')
@@ -332,7 +329,8 @@ class BotConfig:
         self.database.add_new_user(user_id)
         ref = self.database.get_user(ref_id)
         if ref:
-            if ref_id in ADMIN_ID_LIST:
+            ref = ref[0]
+            if ref[4] == 'admin':
                 self.database.change_user_refer(user_id, ref_id)
                 await self.bot.send_message(int(ref_id), f'Вам приєднано вільного реферала з ID: {user_id} як адміну')
             else:
@@ -377,7 +375,8 @@ class BotConfig:
                                     f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
         user_id = message.chat.id
         user = self.database.get_user(user_id)
-        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else random.choice(ADMIN_ID_LIST)
+        admins = self.database.get_admins()
+        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else (random.choice(admins)[0])
         if not user:
             await self._register_new_user(message, user_id, ref_id)
 
@@ -426,7 +425,7 @@ class BotConfig:
                 await user_action[message.text]()
             elif user[1] in user_action:
                 await user_action[user[1]]()
-            elif user_id in ADMIN_ID_LIST:
+            elif user[4] == 'admin':
                 user = self.database.get_user(user_id)
                 user = user[0]
                 if message.text in admin_action:
