@@ -34,6 +34,7 @@ class BotConfig:
     admin_change_payeer_usd_to_uah_course_button = KeyboardButton(text='Змінити курс Payeer USD карта UAH')
     admin_change_payeer_account_button = KeyboardButton(text='Змінити Payeer')
     admin_send_alert_for_all_users_button = KeyboardButton(text='Відправити всім користувачам сповіщення')
+    admin_send_alert_for_user_by_id_button = KeyboardButton(text='Відправити користувачу повідомлення')
 
     back_builder = ReplyKeyboardBuilder()
     home_builder = ReplyKeyboardBuilder()
@@ -68,6 +69,8 @@ class BotConfig:
         admin_change_payeer_account_button,
     ).row(
         admin_send_alert_for_all_users_button,
+        admin_send_alert_for_user_by_id_button,
+    ).row(
         home_button,
     )
 
@@ -255,6 +258,34 @@ class BotConfig:
         await self.bot.send_message(message.from_user.id, 'Повідомлення відправлено всім користувачам бота',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
+    async def admin_send_alert_for_user_by_id(self, message):
+        admin = self.database.get_user(message.from_user.id)[0]
+        await self.bot.send_message(message.from_user.id, 'Введіть айді користувача та повідомлення через пробіл',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        self.database.changer_user_state(admin[0], 'admin_send_alert_for_user_by_id')
+
+    async def admin_send_alert_for_user_by_id_state(self, message):
+        admin = self.database.get_user(message.from_user.id)[0]
+        if len(message.text.split()) > 1:
+            user_id, message_text = message.text.split()[0], ' '.join(message.text.split()[1:])
+            if is_numeric(user_id):
+                user = self.database.get_user(int(user_id))
+                if user:
+                    user = user[0]
+                    await self.bot.send_message(user[0], message_text)
+                    self.database.changer_user_state(admin[0], 'default')
+                    await self.bot.send_message(message.from_user.id, 'Повідомлення надіслано',
+                                                reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+                else:
+                    await self.bot.send_message(message.from_user.id, 'Користувача не знайдено',
+                                                reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+            else:
+                await self.bot.send_message(message.from_user.id, 'ID користувача введено некоректно',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        else:
+            await self.bot.send_message(message.from_user.id, 'Некоректний запис. Введіть ID користувача та повідомлення через пробіл',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
     async def set_confirm_withdraw_state(self, message):
         self.database.changer_user_state(message.chat.id, 'confirm_withdraw')
         await self.bot.send_message(message.from_user.id,
@@ -410,6 +441,7 @@ class BotConfig:
             'Змінити курс Payeer USD карта UAH': lambda: self.set_change_payeer_usd_to_uah_course_state(message),
             'Змінити Payeer': lambda: self.set_change_payeer_account_state(message),
             'Відправити всім користувачам сповіщення': lambda: self.set_send_alert_for_all_users_state(message),
+            'Відправити користувачу повідомлення': lambda: self.admin_send_alert_for_user_by_id(message),
 
             'withdraw': lambda: self.get_request_for_withdrawal(message),
             'confirm_withdraw': lambda: self.confirm_withdraw(message),
@@ -417,6 +449,7 @@ class BotConfig:
             'change_payeer_usd_to_uah_course': lambda: self.change_payeer_usd_to_uah_course(message),
             'change_payeer_account': lambda: self.change_bot_payeer_account(message),
             'send_alert_for_all_users': lambda: self.send_alert_for_all_users(message),
+            'admin_send_alert_for_user_by_id': lambda: self.admin_send_alert_for_user_by_id_state(message),
         }
 
         if user:
