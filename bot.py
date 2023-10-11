@@ -23,6 +23,7 @@ CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 
 class BotConfig:
     home_button = KeyboardButton(text='Головна')
+    exchange_button = KeyboardButton(text='Обмін')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
     cabinet_button = KeyboardButton(text='Кабінет')
     change_user_payeer_account_button = KeyboardButton(text='Змінити Payeer акаунт')
@@ -41,19 +42,25 @@ class BotConfig:
     home_builder = ReplyKeyboardBuilder()
     admin_builder = ReplyKeyboardBuilder()
     cabinet_builder = ReplyKeyboardBuilder()
+    exchange_builder = ReplyKeyboardBuilder()
 
     back_builder.row(
         home_button,
     )
 
     home_builder.row(
-        payeer_usd_to_uah_button,
+        exchange_button,
         cabinet_button,
     ).row(
         course_button,
         support_button,
     ).row(
         admin_options_button,
+    )
+
+    exchange_builder.row(
+        payeer_usd_to_uah_button,
+        home_button,
     )
 
     admin_builder.row(
@@ -99,6 +106,10 @@ class BotConfig:
         await self.bot.send_message(message.from_user.id,
                                     f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nВаш Payeer акаунт: {user[5]}\nНомер Вашої карти: {user[6]}\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
                                     reply_markup=self.cabinet_builder.as_markup(resize_keyboard=True))
+
+    async def exchange(self, message):
+        await self.bot.send_message(message.from_user.id, f'Оберіть напрямок обміну',
+                                    reply_markup=self.exchange_builder.as_markup(resize_keyboard=True))
 
     async def change_user_payeer_account(self, message):
         user_id = message.from_user.id
@@ -360,6 +371,7 @@ class BotConfig:
 
         user_action = {
             'Головна': lambda: self.home(message),
+            'Обмін': lambda: self.exchange(message),
             'Payeer USD\nКарта UAH': lambda: self.exchange_payeer_usd_to_uah(message),
             'Кабінет': lambda: self.cabinet(message),
             'Курс обміну': lambda: self.course(message),
