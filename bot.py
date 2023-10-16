@@ -114,7 +114,7 @@ class BotConfig:
     async def change_user_payeer_account(self, message):
         user_id = message.from_user.id
         self.database.changer_user_state(user_id, 'change_user_payeer_account_state')
-        await self.bot.send_message(message.from_user.id, 'Введіть Ваш  Payeer акаунт',
+        await self.bot.send_message(message.from_user.id, 'Введіть Ваш Payeer акаунт',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def change_user_payeer_account_state(self, message):
@@ -251,10 +251,7 @@ class BotConfig:
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         for user in self.database.get_users():
             user_id = user[0]
-            # try:
             await self.bot.send_message(user_id, message.text)
-            # except ApiTelegramException:
-            #    continue
         await self.bot.send_message(message.from_user.id, 'Повідомлення відправлено всім користувачам бота',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 

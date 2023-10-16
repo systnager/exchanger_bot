@@ -23,21 +23,18 @@ class Database:
         columns_clause = ', '.join([f"{col}" if isinstance(col, str) else str(col) for col in columns_params.keys()])
         values_clause = ', '.join([f"'{val}'" if isinstance(val, str) else str(val) for val in columns_params.values()])
         request = f'INSERT INTO {table} ({columns_clause}) VALUES ({values_clause});'
-        print(request)
         self.cursor.execute(request)
         self.conn.commit()
 
     def get_item(self, table, columns='*', filter_params=None):
         if filter_params is None:
             filter_params = {}
-        print(filter_params, columns, table)
 
         where_clause = " AND ".join(f"{col} = '{val}'" if isinstance(val, str) else f"{col} = {val}"
                                     for col, val in zip(filter_params.keys(), filter_params.values())) if not (filter_params is None) else ''
         set_clause = "*" if columns == '*' else ", ".join(columns)
         where_clause = " WHERE " + where_clause if where_clause else ""
         request = f"SELECT {set_clause} FROM {table} {where_clause};"
-        print(request)
         self.cursor.execute(request)
         return self.cursor.fetchall()
 
@@ -55,7 +52,6 @@ class Database:
 
         where_clause = " WHERE " + where_clause if where_clause else ""
         request = f"UPDATE {table} SET {set_clause} {where_clause};"
-        print(request)
         self.cursor.execute(request)
         self.conn.commit()
 

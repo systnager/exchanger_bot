@@ -14,7 +14,6 @@ async def start_bot():
 
 
 async def main():
-    # Start the bot
     await start_bot()
 
 
