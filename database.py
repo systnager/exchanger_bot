@@ -65,13 +65,16 @@ class Database:
         return self.get_item('user', '*', {'id': 'admin'})
 
     def add_new_user(self, user_id, state='default', balance=0, invited_by=None):
-        self.write_new_item('user', {
+        user_info = {
             'id': user_id,
             'state': state,
             'balance': balance,
-            'invited_by': invited_by if invited_by else 'NULL',
             'role': 'user',
-        })
+        }
+
+        if invited_by:
+            user_info['invited_by'] = invited_by
+        self.write_new_item('user', user_info)
 
     def change_user_refer(self, user_id, refer_id):
         self.update_item('user', {'invited_by': refer_id}, {'id': user_id})

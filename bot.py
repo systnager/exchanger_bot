@@ -355,7 +355,7 @@ class BotConfig:
 
     async def _register_new_user(self, message, user_id, ref_id):
         self.database.add_new_user(user_id)
-        ref = self.database.get_user(ref_id)
+        ref = self.database.get_user(ref_id) if ref_id else None
         if ref:
             ref = ref[0]
             if ref[4] == 'admin':
@@ -364,8 +364,9 @@ class BotConfig:
             else:
                 self.database.change_user_refer(user_id, ref_id)
                 await self.bot.send_message(int(ref_id), f'У Вас новий реферал з ID: {user_id}')
-        else:
-            await self.bot.send_message(message.from_user.id, f'Вас НЕ приєднано до реферера')
+            return
+
+        await self.bot.send_message(message.from_user.id, f'Вас НЕ приєднано до реферера')
 
     async def _make_exchange(self, message, user, withdraw_sum, config):
         if user:
@@ -404,7 +405,9 @@ class BotConfig:
         user_id = message.chat.id
         user = self.database.get_user(user_id)
         admins = self.database.get_admins()
-        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else (random.choice(admins)[0])
+        ref_id = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else random.choice(admins)[
+            0] if admins else None
+
         if not user:
             await self._register_new_user(message, user_id, ref_id)
 
