@@ -1,6 +1,7 @@
 import os
 import mysql.connector
 from dotenv import load_dotenv
+from mysql.connector import OperationalError
 
 load_dotenv()
 
@@ -19,11 +20,19 @@ class Database:
     def connect_to_database(self):
         self.cursor = self.conn.cursor()
 
+    def complete_sql_request(self, request):
+        while True:
+            try:
+                self.cursor.execute(request)
+                break
+            except OperationalError:
+                self.connect_to_database()
+
     def write_new_item(self, table: str, columns_params: dict):
         columns_clause = ', '.join([f"{col}" if isinstance(col, str) else str(col) for col in columns_params.keys()])
         values_clause = ', '.join([f"'{val}'" if isinstance(val, str) else str(val) for val in columns_params.values()])
         request = f'INSERT INTO {table} ({columns_clause}) VALUES ({values_clause});'
-        self.cursor.execute(request)
+        self.complete_sql_request(request)
         self.conn.commit()
 
     def get_item(self, table, columns='*', filter_params=None):
@@ -35,7 +44,7 @@ class Database:
         set_clause = "*" if columns == '*' else ", ".join(columns)
         where_clause = " WHERE " + where_clause if where_clause else ""
         request = f"SELECT {set_clause} FROM {table} {where_clause};"
-        self.cursor.execute(request)
+        self.complete_sql_request(request)
         return self.cursor.fetchall()
 
     def update_item(self, table, columns_params=None, filter_params=None):
@@ -52,7 +61,7 @@ class Database:
 
         where_clause = " WHERE " + where_clause if where_clause else ""
         request = f"UPDATE {table} SET {set_clause} {where_clause};"
-        self.cursor.execute(request)
+        self.complete_sql_request(request)
         self.conn.commit()
 
     def get_user(self, user_id: int):
