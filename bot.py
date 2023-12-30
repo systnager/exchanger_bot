@@ -22,6 +22,7 @@ CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 
 class BotConfig:
     home_button = KeyboardButton(text='Головна')
+    exchange_instruction_button = KeyboardButton(text='Інструкція по обміну')
     exchange_button = KeyboardButton(text='Обмін')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
     cabinet_button = KeyboardButton(text='Кабінет')
@@ -60,6 +61,8 @@ class BotConfig:
 
     exchange_builder.row(
         payeer_usd_to_uah_button,
+        exchange_instruction_button,
+    ).row(
         home_button,
     )
 
@@ -100,14 +103,31 @@ class BotConfig:
     async def start(self):
         await self.dp.start_polling(self.bot)
 
+    async def show_exchange_instrunction(self, message):
+        await self.bot.send_message(message.from_user.id, '\n'.join([
+            f'Для обміну коштів з одного напрямку на інший потрібно виконати наступні кроки:',
+            f'1. У кабінеті зазначити свої номер карти та гаманець, з якого будете проводити обмін',
+            f'2. Ознайомитися з поточним курсом',
+            f'3. Обрати в боті потрібний напрямок обміну та скопіювати гаманець (можна скопіювати натиснувши на його)',
+            f'4. Переказати бажану суму для обміну на скопійований гаманець',
+            f'5. Відправити боту переказану суму у вигляді тексту. Наприклад, якщо це валюта USD - 12.5',
+            f'6. Очікувати на оплату на вказані в кабінеті реквізити',
+        ]), reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
     async def cabinet(self, message):
         config = get_config()
         user = self.database.get_user(message.chat.id)[0]
         invited_user_count = self.database.get_user_referrals_count(user[0])
 
-        await self.bot.send_message(message.from_user.id,
-                                    f'Ваш ID: {user[0]}\nВаш баланс: {float(user[2]):.2f} грн\nВаш Payeer акаунт: {user[5]}\nНомер Вашої карти: {user[6]}\nУсього запрошено: {invited_user_count}\nВаш URL для запрошення: https://t.me/green_exchanger_bot?start={message.chat.id}\nВи будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
-                                    reply_markup=self.cabinet_builder.as_markup(resize_keyboard=True))
+        await self.bot.send_message(message.from_user.id, '\n'.join([
+            f'Ваш ID: <code>{user[0]}</code>',
+            f'Ваш баланс: <code>{float(user[2]):.2f}</code> грн',
+            f'Ваш Payeer акаунт: <code>{user[5]}</code>',
+            f'Номер Вашої карти: <code>{user[6]}</code>',
+            f'Усього запрошено: {invited_user_count}',
+            f'Ваш URL для запрошення: <code>https://t.me/green_exchanger_bot?start={message.chat.id}</code>',
+            f'Ви будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
+        ]), reply_markup=self.cabinet_builder.as_markup(resize_keyboard=True))
 
     async def exchange(self, message):
         await self.bot.send_message(message.from_user.id, f'Оберіть напрямок обміну',
@@ -305,7 +325,17 @@ class BotConfig:
         exchange_sum = message.text
         user = self.database.get_user(message.from_user.id)[0]
         if is_numeric(exchange_sum):
-            await self.bot.send_message(CHAT_ID, f'PAYEER->UAH\nUser send: {exchange_sum}$\nCourse: {config["payeer_usd_to_uah"]}\nUser ID: {user[0]}\nUser Payeer: {user[5]}\nUser card number: {user[6]}\nUsername: @{message.from_user.username}')
+            await self.bot.send_message(CHAT_ID, '\n'.join([
+                f'PAYEER USD ➡️ Карта UAH',
+                f'Курс: <code>{config["payeer_usd_to_uah"]}</code>UAH за 1 USD Payeer',
+                f'User Payeer: <code>{user[5]}</code>',
+                f'User ID: <code>{user[0]}</code>',
+                f'Username: <code>@{message.from_user.username}</code>',
+                f'Користувач відправив: <code>{exchange_sum}$</code>',
+                f'Номер карти: <code>{user[6]}</code>',
+                f'До сплати: <code>{round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code> UAH',
+
+            ]))
             await self.bot.send_message(message.from_user.id, f'Заявку прийнято! Очікуйте надходження на вказану в профілі карту протягом 48 годин',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
             self.database.changer_user_state(user[0], 'default')
@@ -340,22 +370,26 @@ class BotConfig:
         user = self.database.get_user(message.from_user.id)[0]
         if user[5] and user[6]:
             self.database.changer_user_state(user[0], 'exchange_payeer_usd_to_uah_state')
-            await self.bot.send_message(message.from_user.id,
-                                        f'Відправте суму для обміну на {config["payeer_account"]} від 0.2$ з коментарем: {message.from_user.id} {user[6]}\nПісля відправки коштів введіть суму лише числом у валюті, що Ви надіслали. Увага, усі Ваші данні повинні бути валідними, інакше адміністрація залишає за собою право відмовити у виплаті без жодних відшкодувань!',
-                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+            await self.bot.send_message(message.from_user.id,'\n'.join([
+                f'1. Відправте кошти на гаманець <code>{config["payeer_account"]}</code> від 0.2$',
+                f'2. До платежу додайте коментар: <code>id: {message.from_user.id} card: {user[6]}</code>',
+                f'3. Після переказу коштів введіть у чат боту суму відправлених коштів, що Ви надіслали',
+                f'Увага, усі данні в кабінеті (номер карти, ваші гаманці) повинні бути валідними!',
+                f'В іншому випадку адміністрація залишає за собою право відмовити у виплаті без жодних відшкодувань!',
+            ]), reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         else:
-            await self.bot.send_message(message.from_user.id, f'Будь ласка, введіть номер Вашої карти та Ваш Payeer акаунт у кабінеті',
+            await self.bot.send_message(message.from_user.id, f'Будь ласка, зазначте номер Вашої карти та Ваш Payeer акаунт у кабінеті',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def course(self, message):
         config = get_config()
         await self.bot.send_message(message.from_user.id,
-                                    f'Курс на {datetime.now().strftime("%Y.%m.%d")}\n1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH',
+                                    f'Курс на {datetime.now().strftime("%d.%m.%Y")}\n1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def support(self, message):
         await self.bot.send_message(message.from_user.id,
-                                    f'Контакти для отриманя підтримки: @systnager та systnager@ukr.net',
+                                    f'Контакти для отриманя підтримки:\n<code>@systnager</code> та <code>systnager@ukr.net</code>',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def _register_new_user(self, message, user_id, ref_id):
@@ -432,6 +466,7 @@ class BotConfig:
             'Вивести': lambda: self.withdraw(message),
             'Змінити Payeer акаунт': lambda: self.change_user_payeer_account(message),
             'Змінити номер банківської карти': lambda: self.change_user_card_number(message),
+            'Інструкція по обміну': lambda: self.show_exchange_instrunction(message),
 
             'exchange_payeer_usd_to_uah_state': lambda: self.exchange_payeer_usd_to_uah_state(message),
             'change_user_payeer_account_state': lambda: self.change_user_payeer_account_state(message),
