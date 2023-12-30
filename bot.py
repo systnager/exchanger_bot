@@ -8,6 +8,8 @@ from aiogram.types import KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from dotenv import load_dotenv
 
+from aiogram.exceptions import TelegramForbiddenError
+
 from business import *
 
 load_dotenv()
@@ -251,7 +253,10 @@ class BotConfig:
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         for user in self.database.get_users():
             user_id = user[0]
-            await self.bot.send_message(user_id, message.text)
+            try:
+                await self.bot.send_message(user_id, message.text)
+            except TelegramForbiddenError:
+                print('user block the bot')
         await self.bot.send_message(message.from_user.id, 'Повідомлення відправлено всім користувачам бота',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
