@@ -8,17 +8,24 @@ load_dotenv()
 
 class Database:
     def __init__(self):
-        self.conn = mysql.connector.connect(
-            host=os.getenv('HOST'),
-            user=os.getenv('USER_NAME'),
-            password=os.getenv('PASSWORD'),
-            database=os.getenv('DATABASE')
-        )
-
-        self.cursor = self.conn.cursor()
+        self.connect_to_database()
 
     def connect_to_database(self):
-        self.cursor = self.conn.cursor()
+        while True:
+            try:
+                self.conn = mysql.connector.connect(
+                    host=os.getenv('HOST'),
+                    port=os.getenv('PORT'),
+                    user=os.getenv('USER_NAME'),
+                    password=os.getenv('PASSWORD'),
+                    database=os.getenv('DATABASE')
+      		    )
+                self.cursor = self.conn.cursor()
+                break
+            except OperationalError as e:
+                print(e)
+                print('Error with connection to database')
+                continue
 
     def complete_sql_request(self, request):
         while True:
