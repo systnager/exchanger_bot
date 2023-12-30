@@ -32,6 +32,7 @@ class BotConfig:
     support_button = KeyboardButton(text='Підтримка')
     withdraw_button = KeyboardButton(text='Вивести')
     admin_options_button = KeyboardButton(text='Адмінка')
+    admin_sum_for_referral_withdraw = KeyboardButton(text='Сума для виплат рефоводам')
     admin_confirm_withdraw_button = KeyboardButton(text='Підтвердити виплату')
     admin_confirm_exchange_button = KeyboardButton(text='Підтвердити обмін')
     admin_change_payeer_usd_to_uah_course_button = KeyboardButton(text='Змінити курс Payeer USD карта UAH')
@@ -76,6 +77,7 @@ class BotConfig:
         admin_send_alert_for_all_users_button,
         admin_send_alert_for_user_by_id_button,
     ).row(
+        admin_sum_for_referral_withdraw,
         home_button,
     )
 
@@ -103,7 +105,18 @@ class BotConfig:
     async def start(self):
         await self.dp.start_polling(self.bot)
 
-    async def show_exchange_instrunction(self, message):
+    def get_money_sum_count_to_referrals(self) -> int:
+        money_sum = 0
+        for user in self.database.get_users():
+            money_sum += user[2]
+        return money_sum
+
+    async def show_sum_for_referral_withdraw(self, message):
+        money_sum = self.get_money_sum_count_to_referrals()
+        await self.bot.send_message(message.from_user.id, f'Сумарно всім рефоводам потрібно вивести {money_sum}UAH',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def show_exchange_instruction(self, message):
         await self.bot.send_message(message.from_user.id, '\n'.join([
             f'Для обміну коштів з одного напрямку на інший потрібно виконати наступні кроки:',
             f'1. У кабінеті зазначити свої номер карти та гаманець, з якого будете проводити обмін',
@@ -376,6 +389,8 @@ class BotConfig:
                 f'3. Після переказу коштів введіть у чат боту суму відправлених коштів, що Ви надіслали',
                 f'Увага, усі данні в кабінеті (номер карти, ваші гаманці) повинні бути валідними!',
                 f'В іншому випадку адміністрація залишає за собою право відмовити у виплаті без жодних відшкодувань!',
+                f'Якщо Ви НЕ отримали сповіщення про те, що заявка прийнята чи ні, надішліть її знову',
+                f'Іноді є проблеми на стороні хостинга з інтернетом, тому іноді бот може не відповідати короткий термін часу',
             ]), reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         else:
             await self.bot.send_message(message.from_user.id, f'Будь ласка, зазначте номер Вашої карти та Ваш Payeer акаунт у кабінеті',
@@ -466,7 +481,7 @@ class BotConfig:
             'Вивести': lambda: self.withdraw(message),
             'Змінити Payeer акаунт': lambda: self.change_user_payeer_account(message),
             'Змінити номер банківської карти': lambda: self.change_user_card_number(message),
-            'Інструкція по обміну': lambda: self.show_exchange_instrunction(message),
+            'Інструкція по обміну': lambda: self.show_exchange_instruction(message),
 
             'exchange_payeer_usd_to_uah_state': lambda: self.exchange_payeer_usd_to_uah_state(message),
             'change_user_payeer_account_state': lambda: self.change_user_payeer_account_state(message),
@@ -476,6 +491,7 @@ class BotConfig:
         admin_action = {
             'Адмінка': lambda: self.bot.send_message(message.chat.id, 'Ви в адмінці',
                                                      reply_markup=self.admin_builder.as_markup(resize_keyboard=True)),
+            'Сума для виплат рефоводам': lambda: self.show_sum_for_referral_withdraw(message),
             'Підтвердити виплату': lambda: self.set_confirm_withdraw_state(message),
             'Підтвердити обмін': lambda: self.set_confirm_exchange_state(message),
             'Змінити курс Payeer USD карта UAH': lambda: self.set_change_payeer_usd_to_uah_course_state(message),
