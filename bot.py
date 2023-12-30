@@ -186,32 +186,28 @@ class BotConfig:
         user = self.database.get_user(message.chat.id)
         if user:
             user = user[0]
+            card_number = user[6]
             user_answer = message.text
-            if len(user_answer.split()) == 2:
-                card_number, withdraw_money = user_answer.split()
-                withdraw_money = withdraw_money.replace(' ', '')
-                card_number = card_number.replace(' ', '')
-                if is_card_number_valid(card_number) and is_numeric(withdraw_money):
-                    withdraw_money = float(withdraw_money)
-                    await self._withdrawal_request_processing(message, user, withdraw_money, card_number)
-                else:
-                    await self.bot.send_message(message.from_user.id, 'Номер карти може складатися лише з 16 цифр!',
-                                                reply_markup=self.back_builder.as_markup(resize_keyboard=True))
-                    await self.bot.send_message(message.from_user.id, 'Сума для виводу повинна бути дійсним числом!',
-                                                reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+            withdraw_money = user_answer.replace(' ', '')
+            if is_numeric(withdraw_money):
+                withdraw_money = float(withdraw_money)
+                await self._withdrawal_request_processing(message, user, withdraw_money, card_number)
             else:
-                if user_answer != "Вивести":
-                    await self.bot.send_message(message.from_user.id,
-                                                'Невалідна команда. Введіть номер карти та суму через пробіл')
-                    await self.bot.send_message(message.from_user.id,
-                                                'Ось приклад, як потрібно ввести данні: 4114544287780987 1.23',
-                                                reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+                await self.bot.send_message(message.from_user.id, 'Номер карти може складатися лише з 16 цифр!',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+                await self.bot.send_message(message.from_user.id, 'Сума для виводу повинна бути дійсним числом!',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def withdraw(self, message):
         user_id = message.chat.id
-        self.database.changer_user_state(user_id, 'withdraw')
-        await self.bot.send_message(message.from_user.id, 'Введіть номер карти + суму для виводу від 1грн через пробіл',
-                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        user = self.database.get_user(user_id)[0]
+        if user[6]:
+            self.database.changer_user_state(user_id, 'withdraw')
+            await self.bot.send_message(message.from_user.id, 'Введіть суму для виводу від 1грн',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        else:
+            await self.bot.send_message(message.from_user.id, 'Спочатку потрібно ввести номер карти в кабінеті',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def confirm_withdraw(self, message):
         user_answer = message.text
@@ -444,10 +440,14 @@ class BotConfig:
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         elif withdraw_money <= user_balance:
             self.database.change_user_balance(user[0], user[2] - (round(withdraw_money * 100) / 100))
-            await self.bot.send_message(CHAT_ID,
-                                        f'id: {message.chat.id}\nНомер карти: {card_number}\nСума для виплати: {withdraw_money:.2f}грн\n@{message.from_user.username}')
+            await self.bot.send_message(CHAT_ID, '\n'.join([
+                f'id: <code>{message.chat.id}</code>',
+                f'Номер карти: <code>{card_number}</code>',
+                f'Сума для виплати: <code>{withdraw_money}</code>грн',
+                f'Username: <code>@{message.from_user.username}</code>',
+            ]))
             await self.bot.send_message(message.from_user.id,
-                                        f'Заявку прийнято. Виплата {withdraw_money:.2f}грн відбудеться протягом 48 годин❗️',
+                                        f'Заявку прийнято. Виплата {withdraw_money}грн відбудеться протягом 48 годин❗️',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         else:
             await self.bot.send_message(message.from_user.id, f'Недостатня сума для виводу на балансі❗️',
