@@ -25,8 +25,10 @@ class BotConfig:
     exchange_instruction_button = KeyboardButton(text='Інструкція по обміну')
     exchange_button = KeyboardButton(text='Обмін')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
+    advcash_usd_to_uah_button = KeyboardButton(text='Advcash USD\n' + 'Карта UAH')
     cabinet_button = KeyboardButton(text='Кабінет')
     change_user_payeer_account_button = KeyboardButton(text='Змінити Payeer акаунт')
+    change_user_advcash_account_button = KeyboardButton(text='Змінити Advcash акаунт')
     change_user_card_number_button = KeyboardButton(text='Змінити номер банківської карти')
     course_button = KeyboardButton(text='Курс обміну')
     support_button = KeyboardButton(text='Підтримка')
@@ -36,7 +38,9 @@ class BotConfig:
     admin_confirm_withdraw_button = KeyboardButton(text='Підтвердити виплату')
     admin_confirm_exchange_button = KeyboardButton(text='Підтвердити обмін')
     admin_change_payeer_usd_to_uah_course_button = KeyboardButton(text='Змінити курс Payeer USD карта UAH')
+    admin_change_advcash_usd_to_uah_course_button = KeyboardButton(text='Змінити курс Advcash USD карта UAH')
     admin_change_payeer_account_button = KeyboardButton(text='Змінити Payeer')
+    admin_change_advcash_account_button = KeyboardButton(text='Змінити Advcash')
     admin_send_alert_for_all_users_button = KeyboardButton(text='Відправити всім користувачам сповіщення')
     admin_send_alert_for_user_by_id_button = KeyboardButton(text='Відправити користувачу повідомлення')
 
@@ -62,8 +66,9 @@ class BotConfig:
 
     exchange_builder.row(
         payeer_usd_to_uah_button,
-        exchange_instruction_button,
+        advcash_usd_to_uah_button,
     ).row(
+        exchange_instruction_button,
         home_button,
     )
 
@@ -77,6 +82,9 @@ class BotConfig:
         admin_send_alert_for_all_users_button,
         admin_send_alert_for_user_by_id_button,
     ).row(
+        admin_change_advcash_usd_to_uah_course_button,
+        admin_change_advcash_account_button,
+    ).row(
         admin_sum_for_referral_withdraw,
         home_button,
     )
@@ -86,6 +94,8 @@ class BotConfig:
         change_user_payeer_account_button,
     ).row(
         change_user_card_number_button,
+        change_user_advcash_account_button,
+    ).row(
         home_button,
     )
 
@@ -136,6 +146,7 @@ class BotConfig:
             f'Ваш ID: <code>{user[0]}</code>',
             f'Ваш баланс: {float(user[2]):.2f} грн',
             f'Ваш Payeer акаунт: {user[5]}',
+            f'Ваш Advcash акаунт: {user[7]}',
             f'Номер Вашої карти: {user[6]}',
             f'Усього запрошено: {invited_user_count}',
             f'Ваш URL для запрошення: <code>https://t.me/green_exchanger_bot?start={message.chat.id}</code>',
@@ -152,6 +163,12 @@ class BotConfig:
         await self.bot.send_message(message.from_user.id, 'Введіть Ваш Payeer акаунт',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
+    async def change_user_advcash_account(self, message):
+        user_id = message.from_user.id
+        self.database.changer_user_state(user_id, 'change_user_advcash_account_state')
+        await self.bot.send_message(message.from_user.id, 'Введіть Ваш Advcash USD акаунт',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
     async def change_user_payeer_account_state(self, message):
         user_id = message.from_user.id
         if message.text:
@@ -162,6 +179,18 @@ class BotConfig:
                                             reply_markup=self.back_builder.as_markup(resize_keyboard=True))
             else:
                 await self.bot.send_message(message.from_user.id, 'Некоректний запис. Приклад: P12345',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def change_user_advcash_account_state(self, message):
+        user_id = message.from_user.id
+        if message.text:
+            if message.text[0] == 'U':
+                self.database.changer_user_state(user_id, 'default')
+                self.database.changer_user_advcash_account(user_id, message.text)
+                await self.bot.send_message(message.from_user.id, 'Ваш Advcash акаунт оновлено',
+                                            reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+            else:
+                await self.bot.send_message(message.from_user.id, 'Некоректний запис. Приклад: U 123 456 789',
                                             reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def change_user_card_number(self, message):
@@ -271,10 +300,27 @@ class BotConfig:
             await self.bot.send_message(message.from_user.id, 'Введено не число',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
+    async def change_advcash_usd_to_uah_course(self, message):
+        user_answer = message.text
+        if is_numeric(user_answer):
+            user_answer = float(user_answer)
+            set_payeer_usd_to_uah_course(round(user_answer * 100) / 100)
+            await self.bot.send_message(message.from_user.id, f'Курс {user_answer} за 1$ Advcash встановлено',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        else:
+            await self.bot.send_message(message.from_user.id, 'Введено не число',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
     async def change_bot_payeer_account(self, message):
         payeer_account = message.text
         set_payeer_account(payeer_account)
         await self.bot.send_message(message.from_user.id, 'Payeer акаунт для обміну змінено',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def change_bot_advcash_account(self, message):
+        advcash_account = message.text
+        set_advcash_account(advcash_account)
+        await self.bot.send_message(message.from_user.id, 'Advcash акаунт для обміну змінено',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def send_alert_for_all_users(self, message):
@@ -353,14 +399,48 @@ class BotConfig:
                                         'Некоректно введено суму для обміну. Заявку НЕ прийнято',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
+    async def exchange_advcash_usd_to_uah_state(self, message):
+        config = get_config()
+        exchange_sum = message.text
+        user = self.database.get_user(message.from_user.id)[0]
+        if is_numeric(exchange_sum):
+            await self.bot.send_message(CHAT_ID, '\n'.join([
+                f'ADVCASH USD ➡️ Карта UAH',
+                f'Курс: {config["advcash_usd_to_uah"]}',
+                f'User Advcash: <code>{user[7]}</code>',
+                f'User ID: <code>{user[0]}</code>',
+                f'Username: <code>@{message.from_user.username}</code>',
+                f'Користувач відправив: {exchange_sum}$',
+                f'Номер карти: <code>{user[6]}</code>',
+                f'До сплати: <code>{round(float(exchange_sum) * config["advcash_usd_to_uah"] * 100) / 100}</code> UAH',
+
+            ]))
+            await self.bot.send_message(message.from_user.id, f'Заявку прийнято! Очікуйте надходження на вказану в профілі карту протягом 48 годин',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+            self.database.changer_user_state(user[0], 'default')
+        else:
+            await self.bot.send_message(message.from_user.id,
+                                        'Некоректно введено суму для обміну. Заявку НЕ прийнято',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
     async def set_change_payeer_usd_to_uah_course_state(self, message):
         self.database.changer_user_state(message.chat.id, 'change_payeer_usd_to_uah_course')
-        await self.bot.send_message(message.from_user.id, 'Введіть курс Payeer - UAH до 4 знаків після коми',
+        await self.bot.send_message(message.from_user.id, 'Введіть курс Payeer USD - UAH до 4 знаків після коми',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def set_change_advcash_usd_to_uah_course_state(self, message):
+        self.database.changer_user_state(message.chat.id, 'change_advcash_usd_to_uah_course')
+        await self.bot.send_message(message.from_user.id, 'Введіть курс Advcash USD - UAH до 4 знаків після коми',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def set_change_payeer_account_state(self, message):
         self.database.changer_user_state(message.chat.id, 'change_payeer_account')
         await self.bot.send_message(message.from_user.id, 'Введіть новий Payeer аккаунт',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def set_change_advcash_account_state(self, message):
+        self.database.changer_user_state(message.chat.id, 'change_advcash_account')
+        await self.bot.send_message(message.from_user.id, 'Введіть новий Advcash аккаунт',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def set_send_alert_for_all_users_state(self, message):
@@ -392,11 +472,31 @@ class BotConfig:
             await self.bot.send_message(message.from_user.id, f'Будь ласка, зазначте номер Вашої карти та Ваш Payeer акаунт у кабінеті',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
+    async def exchange_advcash_usd_to_uah(self, message):
+        config = get_config()
+        user = self.database.get_user(message.from_user.id)[0]
+        if user[5] and user[6]:
+            self.database.changer_user_state(user[0], 'exchange_advcash_usd_to_uah_state')
+            await self.bot.send_message(message.from_user.id,'\n'.join([
+                f'1. Відправте кошти на гаманець <code>{config["advcash_account"]}</code> від 0.2$',
+                f'2. До платежу додайте коментар: <code>id: {message.from_user.id} card: {user[6]}</code>',
+                f'3. Після переказу коштів введіть у чат боту суму відправлених коштів, що Ви надіслали',
+                f'Увага, усі данні в кабінеті (номер карти, ваші гаманці) повинні бути валідними!',
+                f'В іншому випадку адміністрація залишає за собою право відмовити у виплаті без жодних відшкодувань!',
+                f'Якщо Ви НЕ отримали сповіщення про те, що заявка прийнята чи ні, надішліть її знову',
+                f'Іноді є проблеми на стороні хостинга з інтернетом, тому іноді бот може не відповідати короткий термін часу',
+            ]), reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        else:
+            await self.bot.send_message(message.from_user.id, f'Будь ласка, зазначте номер Вашої карти та Ваш Advcash акаунт у кабінеті',
+                                        reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
     async def course(self, message):
         config = get_config()
-        await self.bot.send_message(message.from_user.id,
-                                    f'Курс на {datetime.now().strftime("%d.%m.%Y")}\n1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH',
-                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+        await self.bot.send_message(message.from_user.id,'\n'.join([
+            f'Курс на {datetime.now().strftime("%d.%m.%Y")}',
+            f'1 Payeer USD ➡️ {config["payeer_usd_to_uah"]} UAH',
+            f'1 Advcash USD ➡️ {config["advcash_usd_to_uah"]} UAH',
+        ]), reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
     async def support(self, message):
         await self.bot.send_message(message.from_user.id,
@@ -475,16 +575,20 @@ class BotConfig:
             'Головна': lambda: self.home(message),
             'Обмін': lambda: self.exchange(message),
             'Payeer USD\nКарта UAH': lambda: self.exchange_payeer_usd_to_uah(message),
+            'Advcash USD\nКарта UAH': lambda: self.exchange_advcash_usd_to_uah(message),
             'Кабінет': lambda: self.cabinet(message),
             'Курс обміну': lambda: self.course(message),
             'Підтримка': lambda: self.support(message),
             'Вивести': lambda: self.withdraw(message),
             'Змінити Payeer акаунт': lambda: self.change_user_payeer_account(message),
+            'Змінити Advcash акаунт': lambda: self.change_user_advcash_account(message),
             'Змінити номер банківської карти': lambda: self.change_user_card_number(message),
             'Інструкція по обміну': lambda: self.show_exchange_instruction(message),
 
             'exchange_payeer_usd_to_uah_state': lambda: self.exchange_payeer_usd_to_uah_state(message),
+            'exchange_advcash_usd_to_uah_state': lambda: self.exchange_advcash_usd_to_uah_state(message),
             'change_user_payeer_account_state': lambda: self.change_user_payeer_account_state(message),
+            'change_user_advcash_account_state': lambda: self.change_user_advcash_account_state(message),
             'change_user_card_number_state': lambda: self.change_user_card_number_state(message),
         }
 
@@ -495,6 +599,8 @@ class BotConfig:
             'Підтвердити виплату': lambda: self.set_confirm_withdraw_state(message),
             'Підтвердити обмін': lambda: self.set_confirm_exchange_state(message),
             'Змінити курс Payeer USD карта UAH': lambda: self.set_change_payeer_usd_to_uah_course_state(message),
+            'Змінити курс Advcash USD карта UAH': lambda: self.set_change_advcash_usd_to_uah_course_state(message),
+            'Змінити Advcash': lambda: self.set_change_advcash_account_state(message),
             'Змінити Payeer': lambda: self.set_change_payeer_account_state(message),
             'Відправити всім користувачам сповіщення': lambda: self.set_send_alert_for_all_users_state(message),
             'Відправити користувачу повідомлення': lambda: self.admin_send_alert_for_user_by_id(message),
@@ -503,7 +609,9 @@ class BotConfig:
             'confirm_withdraw': lambda: self.confirm_withdraw(message),
             'confirm_exchange': lambda: self.confirm_exchange(message),
             'change_payeer_usd_to_uah_course': lambda: self.change_payeer_usd_to_uah_course(message),
+            'change_advcash_usd_to_uah_course': lambda: self.change_advcash_usd_to_uah_course(message),
             'change_payeer_account': lambda: self.change_bot_payeer_account(message),
+            'change_advcash_account': lambda: self.change_bot_advcash_account(message),
             'send_alert_for_all_users': lambda: self.send_alert_for_all_users(message),
             'admin_send_alert_for_user_by_id': lambda: self.admin_send_alert_for_user_by_id_state(message),
         }
