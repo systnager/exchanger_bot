@@ -391,7 +391,7 @@ class BotConfig:
                 f'Користувач відправив: {exchange_sum}$',
                 f'Номер карти: <code>{user[6]}</code>',
                 f'До сплати: <code>{round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code> UAH',
-                f'Код для підтвердження обміну: <code>{user[0]} {exchange_sum}</code>',
+                f'Код для підтвердження обміну: <code>{user[0]} {round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code>',
 
             ]))
             await self.bot.send_message(message.from_user.id, f'Заявку прийнято! Очікуйте надходження на вказану в профілі карту протягом 48 годин',
@@ -416,7 +416,7 @@ class BotConfig:
                 f'Користувач відправив: {exchange_sum}$',
                 f'Номер карти: <code>{user[6]}</code>',
                 f'До сплати: <code>{round(float(exchange_sum) * config["advcash_usd_to_uah"] * 100) / 100}</code> UAH',
-                f'Код для підтвердження обміну: <code>{user[0]} {exchange_sum}</code>',
+                f'Код для підтвердження обміну: <code>{user[0]} {round(float(exchange_sum) * config["advcash_usd_to_uah"] * 100) / 100}</code>',
 
             ]))
             await self.bot.send_message(message.from_user.id, f'Заявку прийнято! Очікуйте надходження на вказану в профілі карту протягом 48 годин',
