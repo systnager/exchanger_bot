@@ -501,7 +501,7 @@ class BotConfig:
     async def exchange_advcash_usd_to_uah(self, message):
         config = get_config()
         user = self.database.get_user(message.from_user.id)[0]
-        if user[5] and user[6]:
+        if user[7] and user[6]:
             self.database.changer_user_state(user[0], 'exchange_advcash_usd_to_uah_state')
             await self.bot.send_message(message.from_user.id,'\n'.join([
                 f'1. Відправте кошти на гаманець <code>{config["advcash_account"]}</code> від 0.2$',
