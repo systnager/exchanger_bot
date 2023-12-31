@@ -389,6 +389,7 @@ class BotConfig:
                 f'Користувач відправив: {exchange_sum}$',
                 f'Номер карти: <code>{user[6]}</code>',
                 f'До сплати: <code>{round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code> UAH',
+                f'Код для підтвердження обміну: <code>{user[0]} {exchange_sum}</code>',
 
             ]))
             await self.bot.send_message(message.from_user.id, f'Заявку прийнято! Очікуйте надходження на вказану в профілі карту протягом 48 годин',
@@ -413,6 +414,7 @@ class BotConfig:
                 f'Користувач відправив: {exchange_sum}$',
                 f'Номер карти: <code>{user[6]}</code>',
                 f'До сплати: <code>{round(float(exchange_sum) * config["advcash_usd_to_uah"] * 100) / 100}</code> UAH',
+                f'Код для підтвердження обміну: <code>{user[0]} {exchange_sum}</code>',
 
             ]))
             await self.bot.send_message(message.from_user.id, f'Заявку прийнято! Очікуйте надходження на вказану в профілі карту протягом 48 годин',
@@ -541,10 +543,12 @@ class BotConfig:
         elif withdraw_money <= user_balance:
             self.database.change_user_balance(user[0], user[2] - (round(withdraw_money * 100) / 100))
             await self.bot.send_message(CHAT_ID, '\n'.join([
+                f'Виплата за вивід з кабінету',
                 f'id: <code>{message.chat.id}</code>',
+                f'Username: <code>@{message.from_user.username}</code>',
                 f'Номер карти: <code>{card_number}</code>',
                 f'Сума для виплати: <code>{withdraw_money}</code>грн',
-                f'Username: <code>@{message.from_user.username}</code>',
+                f'Код для підтвердження виплати: <code>{user[0]} {withdraw_money}</code>',
             ]))
             await self.bot.send_message(message.from_user.id,
                                         f'Заявку прийнято. Виплата {withdraw_money}грн відбудеться протягом 48 годин❗️',
