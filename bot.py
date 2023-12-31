@@ -22,6 +22,7 @@ CHAT_URL = 'https://t.me/+vQm5jYWTWo1iZmMy'
 
 class BotConfig:
     home_button = KeyboardButton(text='Головна')
+    find_referral_button = KeyboardButton(text='Знайти реферала за айді')
     exchange_instruction_button = KeyboardButton(text='Інструкція по обміну')
     exchange_button = KeyboardButton(text='Обмін')
     payeer_usd_to_uah_button = KeyboardButton(text='Payeer USD\n' + 'Карта UAH')
@@ -96,6 +97,7 @@ class BotConfig:
         change_user_card_number_button,
         change_user_advcash_account_button,
     ).row(
+        find_referral_button,
         home_button,
     )
 
@@ -474,6 +476,28 @@ class BotConfig:
             await self.bot.send_message(message.from_user.id, f'Будь ласка, зазначте номер Вашої карти та Ваш Payeer акаунт у кабінеті',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 
+    async def find_referral(self, message):
+        self.database.changer_user_state(message.chat.id, 'find_referral_state')
+        await self.bot.send_message(message.from_user.id, 'Введіть ID шуканого користувача',
+                                    reply_markup=self.back_builder.as_markup(resize_keyboard=True))
+
+    async def find_referral_state(self, message):
+        user_id = message.chat.id
+        referral_id = message.text
+        self.database.changer_user_state(user_id, 'default')
+        referral = self.database.get_user(referral_id)
+        if referral:
+            if user_id == referral[0][3]:
+                await self.bot.send_message(message.from_user.id, 'Користувач є Вашим рефералом 😇',
+                                            reply_markup=self.home_builder.as_markup(resize_keyboard=True))
+            else:
+
+                await self.bot.send_message(message.from_user.id, 'Такого користувача немає у списку Ваших рефералів 😞',
+                                            reply_markup=self.home_builder.as_markup(resize_keyboard=True))
+        else:
+            await self.bot.send_message(message.from_user.id, 'Такого користувача у нас поки немає 😞',
+                                        reply_markup=self.home_builder.as_markup(resize_keyboard=True))
+
     async def exchange_advcash_usd_to_uah(self, message):
         config = get_config()
         user = self.database.get_user(message.from_user.id)[0]
@@ -588,7 +612,9 @@ class BotConfig:
             'Змінити Advcash акаунт': lambda: self.change_user_advcash_account(message),
             'Змінити номер банківської карти': lambda: self.change_user_card_number(message),
             'Інструкція по обміну': lambda: self.show_exchange_instruction(message),
+            'Знайти реферала за айді': lambda: self.find_referral(message),
 
+            'find_referral_state': lambda: self.find_referral_state(message),
             'exchange_payeer_usd_to_uah_state': lambda: self.exchange_payeer_usd_to_uah_state(message),
             'exchange_advcash_usd_to_uah_state': lambda: self.exchange_advcash_usd_to_uah_state(message),
             'change_user_payeer_account_state': lambda: self.change_user_payeer_account_state(message),
