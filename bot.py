@@ -134,9 +134,9 @@ class BotConfig:
 
         await self.bot.send_message(message.from_user.id, '\n'.join([
             f'Ваш ID: <code>{user[0]}</code>',
-            f'Ваш баланс: <code>{float(user[2]):.2f}</code> грн',
-            f'Ваш Payeer акаунт: <code>{user[5]}</code>',
-            f'Номер Вашої карти: <code>{user[6]}</code>',
+            f'Ваш баланс: {float(user[2]):.2f} грн',
+            f'Ваш Payeer акаунт: {user[5]}',
+            f'Номер Вашої карти: {user[6]}',
             f'Усього запрошено: {invited_user_count}',
             f'Ваш URL для запрошення: <code>https://t.me/green_exchanger_bot?start={message.chat.id}</code>',
             f'Ви будете отримувати {config["ref_percent"]}% від суми обміну Ваших рефералів',
@@ -336,11 +336,11 @@ class BotConfig:
         if is_numeric(exchange_sum):
             await self.bot.send_message(CHAT_ID, '\n'.join([
                 f'PAYEER USD ➡️ Карта UAH',
-                f'Курс: <code>{config["payeer_usd_to_uah"]}</code>UAH за 1 USD Payeer',
+                f'Курс: {config["payeer_usd_to_uah"]}',
                 f'User Payeer: <code>{user[5]}</code>',
                 f'User ID: <code>{user[0]}</code>',
                 f'Username: <code>@{message.from_user.username}</code>',
-                f'Користувач відправив: <code>{exchange_sum}$</code>',
+                f'Користувач відправив: {exchange_sum}$',
                 f'Номер карти: <code>{user[6]}</code>',
                 f'До сплати: <code>{round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code> UAH',
 
