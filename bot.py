@@ -150,7 +150,7 @@ class BotConfig:
 
         await self.bot.send_message(message.from_user.id,
                                     f'Ваш ID: <code>{user[0]}</code>\n'
-                                    f'Ваш баланс: {float(user[2]):.2f} грн\n'
+                                    f'Ваш баланс: {float(user[2])*10000//1/10000} грн\n'
                                     f'Ваш Payeer акаунт: {user[5]}\n'
                                     f'Ваш Advcash акаунт: {user[7]}\n'
                                     f'Номер Вашої карти: {user[6]}\n'
@@ -299,9 +299,9 @@ class BotConfig:
     async def change_payeer_usd_to_uah_course(self, message):
         user_answer = message.text
         if is_numeric(user_answer):
-            user_answer = float(user_answer)
-            set_payeer_usd_to_uah_course(round(user_answer * 100) / 100)
-            await self.bot.send_message(message.from_user.id, f'Курс {user_answer:.2f} за 1$ Payeer встановлено',
+            user_answer = float(user_answer) * 10000 // 1 / 10000
+            set_payeer_usd_to_uah_course(user_answer)
+            await self.bot.send_message(message.from_user.id, f'Курс {user_answer} за 1$ Payeer встановлено',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         else:
             await self.bot.send_message(message.from_user.id, 'Введено не число',
@@ -310,8 +310,8 @@ class BotConfig:
     async def change_advcash_usd_to_uah_course(self, message):
         user_answer = message.text
         if is_numeric(user_answer):
-            user_answer = float(user_answer)
-            set_payeer_usd_to_uah_course(round(user_answer * 100) / 100)
+            user_answer = float(user_answer) * 10000 // 1 / 10000
+            set_advcash_usd_to_uah_course(user_answer)
             await self.bot.send_message(message.from_user.id, f'Курс {user_answer} за 1$ Advcash встановлено',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         else:
@@ -388,16 +388,17 @@ class BotConfig:
         exchange_sum = message.text
         user = self.database.get_user(message.from_user.id)[0]
         if is_numeric(exchange_sum):
+            exchange_sum = float(exchange_sum)
             await self.bot.send_message(CHAT_ID, '\n'.join([
                 f'PAYEER USD ➡️ Карта UAH',
                 f'Курс: {config["payeer_usd_to_uah"]}',
                 f'User Payeer: <code>{user[5]}</code>',
                 f'User ID: <code>{user[0]}</code>',
                 f'Username: <code>@{message.from_user.username}</code>',
-                f'Користувач відправив: {exchange_sum}$',
+                f'Користувач відправив: {exchange_sum * 100 // 1 / 100}$',
                 f'Номер карти: <code>{user[6]}</code>',
-                f'До сплати: <code>{round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code> UAH',
-                f'Код для підтвердження обміну: <code>{user[0]} {round(float(exchange_sum) * config["payeer_usd_to_uah"] * 100) / 100}</code>',
+                f'До сплати: <code>{exchange_sum * config["payeer_usd_to_uah"] * 100 // 1 / 100}</code> UAH',
+                f'Код для підтвердження обміну: <code>{user[0]} {exchange_sum * config["payeer_usd_to_uah"] * 100 // 1 / 100}</code>',
 
             ]))
             await self.bot.send_message(message.from_user.id,
@@ -414,16 +415,17 @@ class BotConfig:
         exchange_sum = message.text
         user = self.database.get_user(message.from_user.id)[0]
         if is_numeric(exchange_sum):
+            exchange_sum = float(exchange_sum)
             await self.bot.send_message(CHAT_ID, '\n'.join([
                 f'ADVCASH USD ➡️ Карта UAH',
                 f'Курс: {config["advcash_usd_to_uah"]}',
                 f'User Advcash: <code>{user[7]}</code>',
                 f'User ID: <code>{user[0]}</code>',
                 f'Username: <code>@{message.from_user.username}</code>',
-                f'Користувач відправив: {exchange_sum}$',
+                f'Користувач відправив: {exchange_sum * 100 // 1 / 100}$',
                 f'Номер карти: <code>{user[6]}</code>',
-                f'До сплати: <code>{round(float(exchange_sum) * config["advcash_usd_to_uah"] * 100) / 100}</code> UAH',
-                f'Код для підтвердження обміну: <code>{user[0]} {round(float(exchange_sum) * config["advcash_usd_to_uah"] * 100) / 100}</code>',
+                f'До сплати: <code>{exchange_sum * config["advcash_usd_to_uah"] * 100 // 1 / 100}</code> UAH',
+                f'Код для підтвердження обміну: <code>{user[0]} {exchange_sum * config["advcash_usd_to_uah"] * 100 // 1 / 100}</code>',
 
             ]))
             await self.bot.send_message(message.from_user.id,
@@ -563,8 +565,7 @@ class BotConfig:
             ref = self.database.get_user(user[3] if user[3] is not None else 'NULL')
             if ref:
                 ref = ref[0]
-                self.database.change_user_balance(ref[0], ref[2] + round(
-                    (withdraw_sum * (config["ref_percent"] / 100)) * 10 ** 4) / 10 ** 4)
+                self.database.change_user_balance(ref[0], ref[2] + withdraw_sum * (config["ref_percent"] / 100) * 10000 // 1 / 10000)
         else:
             await self.bot.send_message(message.from_user.id, 'Користувача не знайдено',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
@@ -575,14 +576,14 @@ class BotConfig:
             await self.bot.send_message(message.from_user.id, f'Сума менше 1грн❗️',
                                         reply_markup=self.back_builder.as_markup(resize_keyboard=True))
         elif withdraw_money <= user_balance:
-            self.database.change_user_balance(user[0], user[2] - (round(withdraw_money * 100) / 100))
+            self.database.change_user_balance(user[0], user[2] - (withdraw_money * 100 // 1 / 100))
             await self.bot.send_message(CHAT_ID, '\n'.join([
                 f'Виплата за вивід з кабінету',
                 f'id: <code>{message.chat.id}</code>',
                 f'Username: <code>@{message.from_user.username}</code>',
                 f'Номер карти: <code>{card_number}</code>',
-                f'Сума для виплати: <code>{withdraw_money}</code>грн',
-                f'Код для підтвердження виплати: <code>{user[0]} {withdraw_money}</code>',
+                f'Сума для виплати: <code>{withdraw_money * 100 // 1 / 100}</code>грн',
+                f'Код для підтвердження виплати: <code>{user[0]} {withdraw_money * 100 // 1 / 100}</code>',
             ]))
             await self.bot.send_message(message.from_user.id,
                                         f'Заявку прийнято. Виплата {withdraw_money}грн відбудеться протягом 48 годин❗️',
