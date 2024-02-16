@@ -1,46 +1,27 @@
-import os
-import mysql.connector
-from dotenv import load_dotenv
-from mysql.connector import OperationalError
-
-load_dotenv()
+import sqlite3
 
 
 class Database:
     def __init__(self):
-        self.connect_to_database()
+        self.connection = sqlite3.connect('database.db')
 
-    def connect_to_database(self):
-        while True:
-            try:
-                self.conn = mysql.connector.connect(
-                    host=os.getenv('HOST'),
-                    port=os.getenv('PORT'),
-                    user=os.getenv('USER_NAME'),
-                    password=os.getenv('PASSWORD'),
-                    database=os.getenv('DATABASE')
-      		    )
-                self.cursor = self.conn.cursor()
-                break
-            except OperationalError as e:
-                print(e)
-                print('Error with connection to database')
-                continue
+    def start_connection(self) -> None:
+        self.connection = sqlite3.connect('database.db')
 
-    def complete_sql_request(self, request):
-        while True:
-            try:
-                self.cursor.execute(request)
-                break
-            except OperationalError:
-                self.connect_to_database()
+    def close_connection(self) -> None:
+        self.connection.close()
+
+    def complete_sql_request(self, query):
+        cursor = self.connection.cursor()
+        cursor.execute(query)
+        self.connection.commit()
+        return cursor.fetchall()
 
     def write_new_item(self, table: str, columns_params: dict):
         columns_clause = ', '.join([f"{col}" if isinstance(col, str) else str(col) for col in columns_params.keys()])
         values_clause = ', '.join([f"'{val}'" if isinstance(val, str) else str(val) for val in columns_params.values()])
         request = f'INSERT INTO {table} ({columns_clause}) VALUES ({values_clause});'
         self.complete_sql_request(request)
-        self.conn.commit()
 
     def get_item(self, table, columns='*', filter_params=None):
         if filter_params is None:
@@ -51,8 +32,7 @@ class Database:
         set_clause = "*" if columns == '*' else ", ".join(columns)
         where_clause = " WHERE " + where_clause if where_clause else ""
         request = f"SELECT {set_clause} FROM {table} {where_clause};"
-        self.complete_sql_request(request)
-        return self.cursor.fetchall()
+        return self.complete_sql_request(request)
 
     def update_item(self, table, columns_params=None, filter_params=None):
         if columns_params is None:
@@ -69,7 +49,6 @@ class Database:
         where_clause = " WHERE " + where_clause if where_clause else ""
         request = f"UPDATE {table} SET {set_clause} {where_clause};"
         self.complete_sql_request(request)
-        self.conn.commit()
 
     def get_user(self, user_id: int):
         return self.get_item('user', '*', {'id': user_id})
