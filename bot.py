@@ -338,7 +338,8 @@ class BotConfig:
             try:
                 await self.bot.send_message(user_id, message.text)
             except TelegramForbiddenError:
-                print('user block the bot')
+                print(f'user block bot. id: {user_id}')
+                self.database.delete_user(user_id)
         await self.bot.send_message(message.from_user.id, 'Повідомлення відправлено всім користувачам бота',
                                     reply_markup=self.back_builder.as_markup(resize_keyboard=True))
 

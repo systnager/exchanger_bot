@@ -91,3 +91,7 @@ class Database:
 
     def get_user_referrals_count(self, user_id: int) -> int:
         return len(self.get_item('user', filter_params={'invited_by': user_id}))
+
+    def delete_user(self, user_id: int) -> None:
+        query = f'DELETE FROM user WHERE id = {user_id};'
+        self.complete_sql_request(query)
