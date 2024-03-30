@@ -595,7 +595,7 @@ class BotConfig:
 
     async def _command_start_handle(self, message):
         await self.bot.send_message(message.from_user.id,
-                                    f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}')
+                                    f'Привіт. Ми раді, що ти завітав до нас 🙂\nНаш чат: {CHAT_URL}\nВідеоогляд: https://youtu.be/8NXNlqhSMwc')
         user_id = message.chat.id
         user = self.database.get_user(user_id)
         admins = self.database.get_admins()
